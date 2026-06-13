@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
-import { SubmissionStatus } from '@prisma/client';
+type SubmissionStatus = 'pending' | 'corrected';
 
 const router = Router();
 
@@ -52,21 +52,21 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   });
   if (!cls) { res.status(404).json({ error: 'Classe introuvable.' }); return; }
 
-  const studentIds = cls.members.map(m => m.studentId);
+  const studentIds = cls.members.map((m: { studentId: string }) => m.studentId);
   const results = await prisma.result.findMany({
     where: { userId: { in: studentIds } },
     select: { userId: true, section: true, score: true, createdAt: true },
   });
 
   const sections = ['CO', 'CE', 'EE', 'EO'] as const;
-  const studentStats = studentIds.map(sid => {
-    const sr = results.filter(r => r.userId === sid);
+  const studentStats = studentIds.map((sid: string) => {
+    const sr = results.filter((r: { userId: string }) => r.userId === sid);
     const stats = sections.map(s => {
-      const ss = sr.filter(r => r.section === s);
-      return { section: s, averageScore: ss.length ? Math.round(ss.reduce((a, b) => a + b.score, 0) / ss.length) : null, attempts: ss.length };
+      const ss = sr.filter((r: { section: string }) => r.section === s);
+      return { section: s, averageScore: ss.length ? Math.round(ss.reduce((a: number, b: { score: number }) => a + b.score, 0) / ss.length) : null, attempts: ss.length };
     });
-    const global = sr.length ? Math.round(sr.reduce((a, b) => a + b.score, 0) / sr.length) : null;
-    const joined = cls.members.find(m => m.studentId === sid)?.joinedAt;
+    const global = sr.length ? Math.round(sr.reduce((a: number, b: { score: number }) => a + b.score, 0) / sr.length) : null;
+    const joined = cls.members.find((m: { studentId: string }) => m.studentId === sid)?.joinedAt;
     return { studentId: sid, globalAverage: global, totalAttempts: sr.length, stats, joinedAt: joined };
   });
 
@@ -110,7 +110,7 @@ router.get('/student/:studentId', async (req: Request, res: Response): Promise<v
     where: { studentId: req.params.studentId },
     include: { class: { select: { id: true, name: true, description: true, professorId: true, inviteCode: true } } },
   });
-  res.json({ classes: memberships.map(m => ({ ...m.class, joinedAt: m.joinedAt })) });
+  res.json({ classes: memberships.map((m: { class: object; joinedAt: Date }) => ({ ...m.class, joinedAt: m.joinedAt })) });
 });
 
 // ── Soumissions EE/EO ─────────────────────────────────────────────
@@ -138,7 +138,7 @@ router.get('/submissions/prof/:professorId', async (req: Request, res: Response)
     where: { professorId: req.params.professorId },
     select: { id: true, name: true },
   });
-  const classIds = classes.map(c => c.id);
+  const classIds = classes.map((c: { id: string }) => c.id);
 
   const subs = await prisma.exerciseSubmission.findMany({
     where: {
@@ -148,9 +148,9 @@ router.get('/submissions/prof/:professorId', async (req: Request, res: Response)
     orderBy: { createdAt: 'desc' },
   });
 
-  res.json({ submissions: subs.map(s => ({
+  res.json({ submissions: subs.map((s: { classId?: string }) => ({
     ...s,
-    className: classes.find(c => c.id === s.classId)?.name,
+    className: classes.find((c: { id: string }) => c.id === s.classId)?.name,
   })) });
 });
 
@@ -182,6 +182,41 @@ router.patch('/submissions/:id/correct', async (req: Request, res: Response): Pr
     data: { score, feedback, strengths, errors, correctedBy, correctedAt: new Date(), status: 'corrected' },
   });
   res.json(sub);
+});
+
+// POST /classes/prof-request — apprenant demande l'accès prof (vérifie si invitation pré-approuvée)
+const profRequestSchema = z.object({
+  userId: z.string().min(1),
+  email: z.string().email(),
+  fullName: z.string().min(1),
+  message: z.string().optional(),
+});
+
+router.post('/prof-request', async (req: Request, res: Response): Promise<void> => {
+  const parsed = profRequestSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.errors[0].message }); return; }
+  const { userId, email, fullName, message } = parsed.data;
+
+  // Vérifier si une invitation pré-approuvée existe
+  const invitation = await prisma.professorInvitation.findUnique({ where: { email } });
+  const autoApproved = !!invitation && !invitation.usedAt;
+
+  if (autoApproved) {
+    await prisma.professorInvitation.update({ where: { email }, data: { usedAt: new Date() } });
+  }
+
+  await prisma.professorRequest.upsert({
+    where: { userId },
+    create: {
+      userId, email, fullName, message,
+      status: autoApproved ? 'approved' : 'pending',
+      reviewedBy: autoApproved ? 'auto-invite' : undefined,
+      reviewedAt: autoApproved ? new Date() : undefined,
+    },
+    update: { email, fullName, message },
+  });
+
+  res.json({ autoApproved });
 });
 
 export default router;

@@ -95,6 +95,11 @@ app.use('/api/classes', requireAuth, proxy(PROGRESS_URL, {
   userResHeaderDecorator: fixCORSHeaders,
 }));
 
+app.use('/api/admin', requireAuth, proxy(PROGRESS_URL, {
+  proxyReqPathResolver: (req) => `/admin${req.url}`,
+  userResHeaderDecorator: fixCORSHeaders,
+}));
+
 // ── Health ────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'gateway' }));
 

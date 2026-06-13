@@ -1,13 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
-import { ResultSection } from '@prisma/client';
+
+const RESULT_SECTIONS = ['CO', 'CE', 'EE', 'EO', 'MOCK'] as const;
+type ResultSection = typeof RESULT_SECTIONS[number];
 
 const router = Router();
 
 const resultSchema = z.object({
   userId: z.string().min(1),
-  section: z.nativeEnum(ResultSection),
+  section: z.enum(RESULT_SECTIONS),
   score: z.number().int().min(0).max(100),
   total: z.number().int().min(1),
   correct: z.number().int().min(0),
@@ -49,16 +51,16 @@ router.get('/dashboard/:userId', async (req: Request, res: Response): Promise<vo
 
   const sections = ['CO', 'CE', 'EE', 'EO'] as const;
   const stats = sections.map(s => {
-    const sr = results.filter(r => r.section === s);
+    const sr = results.filter((r: { section: string }) => r.section === s);
     const avg = sr.length
-      ? Math.round(sr.reduce((sum, r) => sum + r.score, 0) / sr.length)
+      ? Math.round(sr.reduce((sum: number, r: { score: number }) => sum + r.score, 0) / sr.length)
       : null;
     return { section: s, averageScore: avg, attempts: sr.length };
   });
 
   const totalAttempts = results.length;
   const globalAverage = totalAttempts
-    ? Math.round(results.reduce((s, r) => s + r.score, 0) / totalAttempts)
+    ? Math.round(results.reduce((s: number, r: { score: number }) => s + r.score, 0) / totalAttempts)
     : null;
 
   res.json({ stats, globalAverage, totalAttempts });

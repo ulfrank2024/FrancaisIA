@@ -152,9 +152,33 @@ export default function OnboardingPage() {
     if (r === 'professeur') {
       setSaving(true);
       try {
-        await user?.update({ unsafeMetadata: { ...(user.unsafeMetadata ?? {}), role: 'professeur', completedOnboarding: true } });
-      } catch {}
-      router.push('/prof/dashboard');
+        // Vérifier si une invitation existe pour cet email (pré-approuvé par admin)
+        const email = user?.emailAddresses?.[0]?.emailAddress ?? '';
+        const fullName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || email;
+
+        // Soumettre la demande prof via l'API admin publique
+        const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        const token = await (window as unknown as { Clerk?: { session?: { getToken: () => Promise<string> } } }).Clerk?.session?.getToken();
+
+        const res = await fetch(`${BASE}/api/classes/prof-request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({ userId: user?.id, email, fullName }),
+        });
+        const data = await res.json();
+
+        if (data.autoApproved) {
+          // Invitation trouvée → accès immédiat
+          await user?.update({ unsafeMetadata: { ...(user.unsafeMetadata ?? {}), role: 'professeur', completedOnboarding: true } });
+          router.push('/prof/dashboard');
+        } else {
+          // Demande en attente de validation admin
+          await user?.update({ unsafeMetadata: { ...(user.unsafeMetadata ?? {}), role: 'pending_prof', completedOnboarding: false } });
+          router.push('/pending-approval');
+        }
+      } catch {
+        router.push('/pending-approval');
+      }
     } else {
       setStep('goal');
     }

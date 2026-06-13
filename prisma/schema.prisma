@@ -119,3 +119,53 @@ enum SubmissionStatus {
   pending
   corrected
 }
+
+model ProfessorRequest {
+  id          String                @id @default(cuid())
+  userId      String                @unique
+  email       String
+  fullName    String
+  message     String?
+  status      ProfessorRequestStatus @default(pending)
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime              @default(now())
+}
+
+enum ProfessorRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+model ProfessorInvitation {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  invitedBy   String
+  token       String   @unique @default(cuid())
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model Subscription {
+  id        String           @id @default(cuid())
+  userId    String           @unique
+  email     String
+  plan      SubscriptionPlan @default(free)
+  status    SubStatus        @default(active)
+  startedAt DateTime         @default(now())
+  expiresAt DateTime?
+  createdAt DateTime         @default(now())
+}
+
+enum SubscriptionPlan {
+  free
+  pro
+  annual
+}
+
+enum SubStatus {
+  active
+  cancelled
+  expired
+}
