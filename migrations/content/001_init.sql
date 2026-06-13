@@ -1,23 +1,20 @@
--- Migration: 001_init — Schéma content (questions TCF Canada)
+-- Migration: 001_init — Table questions TCF Canada
+-- Exécuter dans : Neon Console > SQL Editor
 
-create table if not exists public.questions (
-  id          uuid primary key default gen_random_uuid(),
-  section     text not null check (section in ('CO','CE','EE','EO')),
-  level       text not null check (level in ('A1','A2','B1','B2','C1','C2')),
-  question    text not null,
-  options     jsonb,           -- null pour EE/EO (réponse libre)
-  answer      text,            -- null pour EE/EO
-  explanation text,
-  audio_url   text,            -- pour CO (compréhension orale)
-  tags        text[] default '{}',
-  active      boolean default true,
-  created_at  timestamptz default now()
+CREATE TABLE IF NOT EXISTS questions (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  section     TEXT NOT NULL CHECK (section IN ('CO','CE','EE','EO')),
+  level       TEXT NOT NULL CHECK (level IN ('A1','A2','B1','B2','C1','C2')),
+  question    TEXT NOT NULL,
+  options     JSONB,           -- NULL pour EE/EO (réponse libre)
+  answer      TEXT,            -- NULL pour EE/EO
+  explanation TEXT,
+  audio_url   TEXT,            -- pour CO (compréhension orale)
+  tags        TEXT[] DEFAULT '{}',
+  active      BOOLEAN DEFAULT TRUE,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
-create index if not exists idx_questions_section_level
-  on public.questions(section, level)
-  where active = true;
-
-alter table public.questions enable row level security;
-create policy "Service role full access" on public.questions
-  for all using (true) with check (true);
+CREATE INDEX IF NOT EXISTS idx_questions_section_level
+  ON questions(section, level)
+  WHERE active = TRUE;

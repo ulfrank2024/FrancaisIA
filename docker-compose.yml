@@ -17,6 +17,9 @@ services:
   auth-service:
     build: ./services/auth-service
     env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
     ports:
       - "4001:4001"
     networks: [francaisIA]
@@ -27,6 +30,8 @@ services:
   content-service:
     build: ./services/content-service
     env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
     ports:
       - "4002:4002"
     networks: [francaisIA]
@@ -34,6 +39,8 @@ services:
   ai-service:
     build: ./services/ai-service
     env_file: .env
+    environment:
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
     ports:
       - "4003:4003"
     networks: [francaisIA]
@@ -44,6 +51,8 @@ services:
   progress-service:
     build: ./services/progress-service
     env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
     ports:
       - "4004:4004"
     networks: [francaisIA]

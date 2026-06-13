@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { createClient } from 'redis';
 import { z } from 'zod';
-import { supabase } from '../db/supabase';
+import { sql } from '../db/db';
 import { validateBody } from '../middleware/validateBody';
 
 const router = Router();
@@ -26,12 +26,12 @@ function signTokens(userId: string) {
   const accessToken = jwt.sign(
     { sub: userId },
     process.env.JWT_ACCESS_SECRET!,
-    { expiresIn: process.env.JWT_ACCESS_EXPIRES || '15m' }
+    { expiresIn: process.env.JWT_ACCESS_EXPIRES as string || '15m' }
   );
   const refreshToken = jwt.sign(
     { sub: userId },
     process.env.JWT_REFRESH_SECRET!,
-    { expiresIn: process.env.JWT_REFRESH_EXPIRES || '7d' }
+    { expiresIn: process.env.JWT_REFRESH_EXPIRES as string || '7d' }
   );
   return { accessToken, refreshToken };
 }
@@ -40,26 +40,22 @@ function signTokens(userId: string) {
 router.post('/register', validateBody(registerSchema), async (req: Request, res: Response): Promise<void> => {
   const { email, password, fullName } = req.body;
 
-  const { data: existing } = await supabase
-    .from('users')
-    .select('id')
-    .eq('email', email)
-    .single();
-
-  if (existing) {
+  const existing = await sql`SELECT id FROM users WHERE email = ${email} LIMIT 1`;
+  if (existing.length > 0) {
     res.status(409).json({ error: 'Cet email est déjà utilisé.' });
     return;
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
 
-  const { data: user, error } = await supabase
-    .from('users')
-    .insert({ email, password_hash: passwordHash, full_name: fullName })
-    .select('id, email, full_name')
-    .single();
+  const rows = await sql`
+    INSERT INTO users (email, password_hash, full_name)
+    VALUES (${email}, ${passwordHash}, ${fullName})
+    RETURNING id, email, full_name
+  `;
+  const user = rows[0];
 
-  if (error || !user) {
+  if (!user) {
     res.status(500).json({ error: "Erreur lors de l'inscription." });
     return;
   }
@@ -74,11 +70,10 @@ router.post('/register', validateBody(registerSchema), async (req: Request, res:
 router.post('/login', validateBody(loginSchema), async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
 
-  const { data: user } = await supabase
-    .from('users')
-    .select('id, email, full_name, password_hash')
-    .eq('email', email)
-    .single();
+  const rows = await sql`
+    SELECT id, email, full_name, password_hash FROM users WHERE email = ${email} LIMIT 1
+  `;
+  const user = rows[0];
 
   if (!user) {
     res.status(401).json({ error: 'Email ou mot de passe incorrect.' });

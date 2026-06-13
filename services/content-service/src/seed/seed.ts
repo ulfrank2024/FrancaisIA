@@ -1,44 +1,41 @@
-import { createClient } from '@supabase/supabase-js';
+import { neon } from '@neondatabase/serverless';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const sql = neon(process.env.DATABASE_URL!);
 
 const questions = [
-  // ── Compréhension des Écrits (CE) ─────────────────────────────
+  // ── Compréhension des Écrits (CE) ──────────────────────────────
   {
     section: 'CE', level: 'B1',
-    question: 'Lisez le texte suivant et répondez : "Le Canada accueille chaque année des centaines de milliers d\'immigrants. Pour s\'installer, les candidats doivent passer plusieurs tests de langue française." — Quel est l\'objectif principal de ce texte ?',
-    options: { a: 'Expliquer comment obtenir la citoyenneté', b: 'Informer sur les exigences linguistiques pour immigrer', c: 'Décrire la culture canadienne', d: 'Présenter les villes du Canada' },
+    question: 'Lisez le texte : "Le Canada accueille chaque année des centaines de milliers d\'immigrants. Pour s\'installer, les candidats doivent passer plusieurs tests de langue française." — Quel est l\'objectif principal de ce texte ?',
+    options: JSON.stringify({ a: 'Expliquer comment obtenir la citoyenneté', b: 'Informer sur les exigences linguistiques pour immigrer', c: 'Décrire la culture canadienne', d: 'Présenter les villes du Canada' }),
     answer: 'b',
     explanation: 'Le texte parle des tests de langue requis pour s\'installer au Canada.',
   },
   {
     section: 'CE', level: 'B2',
-    question: 'Dans l\'annonce suivante : "Poste à pourvoir : conseiller(ère) en immigration. Bilinguisme français-anglais exigé. Expérience de 3 ans minimum." — Quelle compétence est OBLIGATOIRE ?',
-    options: { a: 'Avoir 3 ans d\'expérience uniquement', b: 'Parler trois langues', c: 'Être bilingue et avoir 3 ans d\'expérience', d: 'Connaître le droit canadien' },
+    question: 'Dans l\'annonce : "Poste à pourvoir : conseiller(ère) en immigration. Bilinguisme français-anglais exigé. Expérience de 3 ans minimum." — Quelle compétence est OBLIGATOIRE ?',
+    options: JSON.stringify({ a: 'Avoir 3 ans d\'expérience uniquement', b: 'Parler trois langues', c: 'Être bilingue et avoir 3 ans d\'expérience', d: 'Connaître le droit canadien' }),
     answer: 'c',
     explanation: 'Les deux conditions sont "exigées" donc obligatoires.',
   },
-  // ── Compréhension de l\'Oral (CO) ──────────────────────────────
+  // ── Compréhension de l\'Oral (CO) ───────────────────────────────
   {
     section: 'CO', level: 'B1',
     question: 'Vous entendez : "Bienvenue à Montréal ! Les transports en commun sont excellents ici. Le métro fonctionne jusqu\'à minuit trente." — Jusqu\'à quelle heure fonctionne le métro ?',
-    options: { a: 'Minuit', b: 'Minuit trente', c: 'Une heure du matin', d: 'Onze heures trente' },
+    options: JSON.stringify({ a: 'Minuit', b: 'Minuit trente', c: 'Une heure du matin', d: 'Onze heures trente' }),
     answer: 'b',
     explanation: 'Le locuteur dit clairement "jusqu\'à minuit trente".',
   },
   {
     section: 'CO', level: 'A2',
-    question: 'Vous entendez une annonce : "Attention, le train à destination de Québec partira du quai numéro cinq à quatorze heures." — De quel quai part le train ?',
-    options: { a: 'Quai 4', b: 'Quai 3', c: 'Quai 5', d: 'Quai 2' },
+    question: 'Vous entendez : "Attention, le train à destination de Québec partira du quai numéro cinq à quatorze heures." — De quel quai part le train ?',
+    options: JSON.stringify({ a: 'Quai 4', b: 'Quai 3', c: 'Quai 5', d: 'Quai 2' }),
     answer: 'c',
     explanation: 'L\'annonce précise "quai numéro cinq".',
   },
-  // ── Expression Écrite (EE) ─────────────────────────────────────
+  // ── Expression Écrite (EE) ──────────────────────────────────────
   {
     section: 'EE', level: 'B1',
     question: 'Vous avez reçu une offre d\'emploi à Montréal. Écrivez un email de remerciement à l\'employeur (80-100 mots) en précisant votre motivation et votre disponibilité.',
@@ -53,7 +50,7 @@ const questions = [
     answer: null,
     explanation: 'Critères : structure (introduction, corps, conclusion), vocabulaire professionnel, cohérence, registre soutenu.',
   },
-  // ── Expression Orale (EO) ──────────────────────────────────────
+  // ── Expression Orale (EO) ───────────────────────────────────────
   {
     section: 'EO', level: 'B1',
     question: 'Décrivez votre ville natale en 2-3 minutes. Parlez du climat, des habitants, des activités et de ce qui vous manque.',
@@ -71,14 +68,16 @@ const questions = [
 ];
 
 async function seed() {
-  console.log('Seeding questions TCF Canada...');
-  const { error } = await supabase.from('questions').upsert(questions, { onConflict: 'id' });
-  if (error) {
-    console.error('Erreur seed:', error.message);
-    process.exit(1);
+  console.log('Seeding questions TCF Canada dans Neon...');
+  for (const q of questions) {
+    await sql`
+      INSERT INTO questions (section, level, question, options, answer, explanation)
+      VALUES (${q.section}, ${q.level}, ${q.question}, ${q.options ? q.options : null}::jsonb, ${q.answer}, ${q.explanation})
+      ON CONFLICT DO NOTHING
+    `;
   }
   console.log(`✓ ${questions.length} questions insérées.`);
   process.exit(0);
 }
 
-seed();
+seed().catch(e => { console.error(e); process.exit(1); });

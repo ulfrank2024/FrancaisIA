@@ -1,26 +1,15 @@
--- Migration: 001_init — Schéma auth
--- Exécuter dans Supabase Dashboard > SQL Editor
+-- Migration: 001_init — Table users
+-- Exécuter dans : Neon Console > SQL Editor
 
-create schema if not exists auth_app;
-
-create table if not exists public.users (
-  id          uuid primary key default gen_random_uuid(),
-  email       text unique not null,
-  password_hash text not null,
-  full_name   text not null,
-  avatar_url  text,
-  level       text default 'A1' check (level in ('A1','A2','B1','B2','C1','C2')),
-  created_at  timestamptz default now(),
-  updated_at  timestamptz default now()
+CREATE TABLE IF NOT EXISTS users (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email         TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  full_name     TEXT NOT NULL,
+  avatar_url    TEXT,
+  level         TEXT DEFAULT 'A1' CHECK (level IN ('A1','A2','B1','B2','C1','C2')),
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Index pour les lookups par email
-create index if not exists idx_users_email on public.users(email);
-
--- Row Level Security
-alter table public.users enable row level security;
-
--- Politique: service_role peut tout faire (utilisé par le backend)
-create policy "Service role full access" on public.users
-  for all using (true)
-  with check (true);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);

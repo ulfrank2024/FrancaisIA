@@ -1,5 +1,17 @@
 # CHANGELOG — FrançaisIA
 
+## [1.1.0] — 2026-06-12 · Migration base de données
+
+### Modifié
+- Migration de Supabase vers **Neon** (PostgreSQL serverless)
+- Remplacement de `@supabase/supabase-js` par `@neondatabase/serverless` dans les 3 services
+- Requêtes SQL templateées (tagged template literals Neon) — plus performant et typé
+- Une seule `DATABASE_URL` partagée entre les services (au lieu de 3 connexions Supabase séparées)
+- Migrations SQL simplifiées (suppression des politiques RLS Supabase)
+- `docker-compose.yml` mis à jour pour injecter `DATABASE_URL` dans chaque service
+
+---
+
 ## [1.0.0] — 2026-06-12 · Fondateur Solo
 
 ### Ajouté

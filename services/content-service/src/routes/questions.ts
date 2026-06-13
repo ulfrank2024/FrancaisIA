@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { supabase } from '../db/supabase';
+import { sql } from '../db/db';
 
 const router = Router();
 
@@ -19,63 +19,61 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
   }
   const { section, level, limit } = parsed.data;
 
-  let query = supabase
-    .from('questions')
-    .select('id, section, level, question, options, explanation, audio_url, tags')
-    .eq('active', true)
-    .limit(limit);
-
-  if (section) query = query.eq('section', section);
-  if (level) query = query.eq('level', level);
-
-  const { data, error } = await query;
-  if (error) {
-    res.status(500).json({ error: 'Erreur lors de la récupération des questions.' });
-    return;
+  let rows;
+  if (section && level) {
+    rows = await sql`
+      SELECT id, section, level, question, options, explanation, audio_url, tags
+      FROM questions WHERE active = true AND section = ${section} AND level = ${level}
+      ORDER BY random() LIMIT ${limit}
+    `;
+  } else if (section) {
+    rows = await sql`
+      SELECT id, section, level, question, options, explanation, audio_url, tags
+      FROM questions WHERE active = true AND section = ${section}
+      ORDER BY random() LIMIT ${limit}
+    `;
+  } else if (level) {
+    rows = await sql`
+      SELECT id, section, level, question, options, explanation, audio_url, tags
+      FROM questions WHERE active = true AND level = ${level}
+      ORDER BY random() LIMIT ${limit}
+    `;
+  } else {
+    rows = await sql`
+      SELECT id, section, level, question, options, explanation, audio_url, tags
+      FROM questions WHERE active = true
+      ORDER BY random() LIMIT ${limit}
+    `;
   }
 
-  // Mélanger aléatoirement
-  const shuffled = data?.sort(() => Math.random() - 0.5) ?? [];
-  res.json({ questions: shuffled, total: shuffled.length });
+  res.json({ questions: rows, total: rows.length });
 });
 
-// GET /questions/mock-exam — 1 examen complet simulé (toutes sections)
+// GET /questions/mock-exam
 router.get('/mock-exam', async (_req: Request, res: Response): Promise<void> => {
-  const sections: Array<'CO' | 'CE' | 'EE' | 'EO'> = ['CO', 'CE', 'EE', 'EO'];
-  const perSection = 10;
+  const sections = ['CO', 'CE', 'EE', 'EO'] as const;
 
-  const results = await Promise.all(
-    sections.map((s) =>
-      supabase
-        .from('questions')
-        .select('id, section, level, question, options, explanation, audio_url')
-        .eq('section', s)
-        .eq('active', true)
-        .limit(perSection)
-    )
-  );
+  const [co, ce, ee, eo] = await Promise.all([
+    sql`SELECT id, section, level, question, options, explanation, audio_url FROM questions WHERE active = true AND section = 'CO' ORDER BY random() LIMIT 10`,
+    sql`SELECT id, section, level, question, options, explanation, audio_url FROM questions WHERE active = true AND section = 'CE' ORDER BY random() LIMIT 10`,
+    sql`SELECT id, section, level, question, options, explanation, audio_url FROM questions WHERE active = true AND section = 'EE' ORDER BY random() LIMIT 10`,
+    sql`SELECT id, section, level, question, options, explanation, audio_url FROM questions WHERE active = true AND section = 'EO' ORDER BY random() LIMIT 10`,
+  ]);
 
-  const exam: Record<string, unknown[]> = {};
-  sections.forEach((s, i) => {
-    exam[s] = results[i].data?.sort(() => Math.random() - 0.5) ?? [];
+  res.json({
+    exam: { CO: co, CE: ce, EE: ee, EO: eo },
+    totalQuestions: co.length + ce.length + ee.length + eo.length,
   });
-
-  res.json({ exam, totalQuestions: sections.length * perSection });
 });
 
-// GET /questions/:id — une question avec la réponse (pour correction)
+// GET /questions/:id
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
-  const { data, error } = await supabase
-    .from('questions')
-    .select('*')
-    .eq('id', req.params.id)
-    .single();
-
-  if (error || !data) {
+  const rows = await sql`SELECT * FROM questions WHERE id = ${req.params.id} LIMIT 1`;
+  if (rows.length === 0) {
     res.status(404).json({ error: 'Question introuvable.' });
     return;
   }
-  res.json(data);
+  res.json(rows[0]);
 });
 
 export default router;

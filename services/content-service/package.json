@@ -8,7 +8,7 @@
     "seed": "ts-node src/seed/seed.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
+    "@neondatabase/serverless": "^0.10.4",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",

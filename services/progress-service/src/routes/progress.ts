@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { supabase } from '../db/supabase';
+import { sql } from '../db/db';
 
 const router = Router();
 
@@ -19,7 +19,7 @@ const resultSchema = z.object({
   durationSeconds: z.number().int().optional(),
 });
 
-// POST /progress/results — enregistrer un résultat
+// POST /progress/results
 router.post('/results', async (req: Request, res: Response): Promise<void> => {
   const parsed = resultSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -28,68 +28,54 @@ router.post('/results', async (req: Request, res: Response): Promise<void> => {
   }
   const { userId, section, score, total, correct, details, durationSeconds } = parsed.data;
 
-  const { data, error } = await supabase
-    .from('results')
-    .insert({
-      user_id: userId, section, score, total, correct,
-      details, duration_s: durationSeconds,
-    })
-    .select('id, created_at')
-    .single();
+  const rows = await sql`
+    INSERT INTO results (user_id, section, score, total, correct, details, duration_s)
+    VALUES (${userId}, ${section}, ${score}, ${total}, ${correct}, ${JSON.stringify(details)}::jsonb, ${durationSeconds ?? null})
+    RETURNING id, created_at
+  `;
 
-  if (error) {
+  if (rows.length === 0) {
     res.status(500).json({ error: "Erreur lors de l'enregistrement." });
     return;
   }
-  res.status(201).json({ resultId: data.id, message: 'Résultat enregistré.' });
+  res.status(201).json({ resultId: rows[0].id, message: 'Résultat enregistré.' });
 });
 
-// GET /progress/dashboard/:userId — stats globales
+// GET /progress/dashboard/:userId
 router.get('/dashboard/:userId', async (req: Request, res: Response): Promise<void> => {
   const userId = req.params.userId;
 
-  const { data: results, error } = await supabase
-    .from('results')
-    .select('section, score, correct, total, created_at')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+  const results = await sql`
+    SELECT section, score, correct, total, created_at
+    FROM results WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+  `;
 
-  if (error) {
-    res.status(500).json({ error: 'Erreur lors de la récupération.' });
-    return;
-  }
-
-  const sections = ['CO', 'CE', 'EE', 'EO'] as const;
-  const stats = sections.map((s) => {
-    const sectionResults = results?.filter((r) => r.section === s) ?? [];
-    const avg = sectionResults.length
-      ? Math.round(sectionResults.reduce((sum, r) => sum + r.score, 0) / sectionResults.length)
+  const sections = ['CO', 'CE', 'EE', 'EO'];
+  const stats = sections.map(s => {
+    const sr = results.filter(r => r.section === s);
+    const avg = sr.length
+      ? Math.round(sr.reduce((sum: number, r: { score: number }) => sum + r.score, 0) / sr.length)
       : null;
-    return { section: s, averageScore: avg, attempts: sectionResults.length };
+    return { section: s, averageScore: avg, attempts: sr.length };
   });
 
-  const totalAttempts = results?.length ?? 0;
-  const globalAvg = totalAttempts
-    ? Math.round((results ?? []).reduce((s, r) => s + r.score, 0) / totalAttempts)
+  const totalAttempts = results.length;
+  const globalAverage = totalAttempts
+    ? Math.round(results.reduce((s: number, r: { score: number }) => s + r.score, 0) / totalAttempts)
     : null;
 
-  res.json({ stats, globalAverage: globalAvg, totalAttempts });
+  res.json({ stats, globalAverage, totalAttempts });
 });
 
-// GET /progress/history/:userId — historique des examens
+// GET /progress/history/:userId
 router.get('/history/:userId', async (req: Request, res: Response): Promise<void> => {
-  const { data, error } = await supabase
-    .from('results')
-    .select('id, section, score, total, correct, duration_s, created_at')
-    .eq('user_id', req.params.userId)
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  if (error) {
-    res.status(500).json({ error: 'Erreur lors de la récupération.' });
-    return;
-  }
-  res.json({ history: data ?? [] });
+  const rows = await sql`
+    SELECT id, section, score, total, correct, duration_s, created_at
+    FROM results WHERE user_id = ${req.params.userId}
+    ORDER BY created_at DESC LIMIT 50
+  `;
+  res.json({ history: rows });
 });
 
 export default router;
