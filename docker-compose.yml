@@ -1,0 +1,79 @@
+version: '3.9'
+
+services:
+  # ─── Cache / Sessions ────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks: [francaisIA]
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      retries: 5
+
+  # ─── Microservices ───────────────────────────────────────────────
+  auth-service:
+    build: ./services/auth-service
+    env_file: .env
+    ports:
+      - "4001:4001"
+    networks: [francaisIA]
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  content-service:
+    build: ./services/content-service
+    env_file: .env
+    ports:
+      - "4002:4002"
+    networks: [francaisIA]
+
+  ai-service:
+    build: ./services/ai-service
+    env_file: .env
+    ports:
+      - "4003:4003"
+    networks: [francaisIA]
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  progress-service:
+    build: ./services/progress-service
+    env_file: .env
+    ports:
+      - "4004:4004"
+    networks: [francaisIA]
+
+  # ─── API Gateway ─────────────────────────────────────────────────
+  api-gateway:
+    build: ./api-gateway
+    env_file: .env
+    ports:
+      - "4000:4000"
+    networks: [francaisIA]
+    depends_on:
+      - auth-service
+      - content-service
+      - ai-service
+      - progress-service
+
+  # ─── Frontend ────────────────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    env_file: .env
+    ports:
+      - "3000:3000"
+    networks: [francaisIA]
+    depends_on:
+      - api-gateway
+
+networks:
+  francaisIA:
+    driver: bridge
+
+volumes:
+  redis_data:
