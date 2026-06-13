@@ -132,7 +132,7 @@ export default function MockExamPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 pb-10">
       <div className="bg-white/80 backdrop-blur border-b border-slate-100 sticky top-0 z-40">
-        <div className="max-w-3xl mx-auto px-6 py-3 flex items-center gap-3">
+        <div className="max-w-3xl mx-auto px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-3">
           <button onClick={() => router.push('/dashboard')} className="text-slate-400 hover:text-red-500 transition-colors text-sm">✕ Quitter</button>
           <div className="flex-1 flex gap-2">
             {SECTIONS_ORDER.map((s, i) => (
@@ -150,7 +150,7 @@ export default function MockExamPage() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 pt-8 space-y-6">
+      <div className="max-w-3xl mx-auto px-3 sm:px-6 pt-6 sm:pt-8 space-y-4 sm:space-y-6">
         <div className="flex justify-center">
           <SophieAvatar mood="explain" size="sm" showMessage={false} />
         </div>

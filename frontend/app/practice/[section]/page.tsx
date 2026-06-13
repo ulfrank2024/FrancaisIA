@@ -141,13 +141,15 @@ export default function PracticePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 pb-10">
       {/* Header */}
       <div className="bg-white/80 backdrop-blur border-b border-slate-100 sticky top-0 z-40">
-        <div className="max-w-3xl mx-auto px-6 py-3 flex items-center gap-4">
-          <button onClick={() => router.push('/dashboard')} className="text-slate-400 hover:text-indigo-600 transition-colors">← Retour</button>
-          <div className={`px-3 py-1 rounded-full bg-gradient-to-r ${meta.color} text-white text-xs font-bold flex items-center gap-1`}>
-            <span>{meta.icon}</span><span>{sectionCode} · {meta.label}</span>
+        <div className="max-w-3xl mx-auto px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-4">
+          <button onClick={() => router.push('/dashboard')} className="text-slate-400 hover:text-indigo-600 transition-colors text-sm flex-shrink-0">← Retour</button>
+          <div className={`px-2 sm:px-3 py-1 rounded-full bg-gradient-to-r ${meta.color} text-white text-xs font-bold flex items-center gap-1 min-w-0`}>
+            <span>{meta.icon}</span>
+            <span className="hidden sm:inline">{sectionCode} · {meta.label}</span>
+            <span className="sm:hidden">{sectionCode}</span>
           </div>
-          <div className="ml-auto text-sm text-slate-400">
-            Question {current + 1} / {questions.length}
+          <div className="ml-auto text-xs sm:text-sm text-slate-400 flex-shrink-0 whitespace-nowrap">
+            Q {current + 1}/{questions.length}
           </div>
         </div>
         {/* Barre de progression */}
@@ -160,7 +162,7 @@ export default function PracticePage() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 pt-8 space-y-6">
+      <div className="max-w-3xl mx-auto px-3 sm:px-6 pt-6 sm:pt-8 space-y-4 sm:space-y-6">
         {/* Sophie */}
         <div className="flex justify-center">
           <SophieAvatar mood={mood} size="sm" showMessage={true} />
