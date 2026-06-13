@@ -18,6 +18,8 @@
     "next": "15.3.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-is": "^19.2.7",
+    "recharts": "^3.8.1",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

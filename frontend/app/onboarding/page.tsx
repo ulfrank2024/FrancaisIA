@@ -136,15 +136,29 @@ const SECTION_COLORS: Record<SectionCode, string> = {
   EO: 'from-rose-400 to-pink-500',
 };
 
-type Step = 'goal' | 'program' | 'result';
+type Step = 'role' | 'goal' | 'program' | 'result';
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { user } = useUser();
-  const [step, setStep] = useState<Step>('goal');
+  const [step, setStep] = useState<Step>('role');
+  const [role, setRole] = useState<'apprenant' | 'professeur' | null>(null);
   const [goal, setGoal] = useState<string | null>(null);
   const [program, setProgram] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  async function handleRoleSelect(r: 'apprenant' | 'professeur') {
+    setRole(r);
+    if (r === 'professeur') {
+      setSaving(true);
+      try {
+        await user?.update({ unsafeMetadata: { ...(user.unsafeMetadata ?? {}), role: 'professeur', completedOnboarding: true } });
+      } catch {}
+      router.push('/prof/dashboard');
+    } else {
+      setStep('goal');
+    }
+  }
 
   const selectedProgram = program ? PROGRAMS[program] : null;
 
@@ -171,6 +185,7 @@ export default function OnboardingPage() {
       await user?.update({
         unsafeMetadata: {
           ...(user.unsafeMetadata ?? {}),
+          role: 'apprenant',
           goal,
           program: goal === 'immigration' ? program : null,
           completedOnboarding: true,
@@ -210,6 +225,46 @@ export default function OnboardingPage() {
         </div>
 
         <AnimatePresence mode="wait">
+
+          {/* ── ÉTAPE 0 : Rôle ─────────────────────────────── */}
+          {step === 'role' && (
+            <motion.div key="role" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="space-y-6">
+              <div className="flex flex-col items-center gap-4">
+                <SophieAvatar mood="idle" size="sm" showMessage={false} />
+                <div className="text-center">
+                  <h1 className="text-2xl font-black text-slate-900">Bienvenue ! Je suis Sophie 👋</h1>
+                  <p className="text-slate-500 mt-2">Comment vas-tu utiliser FrançaisIA ?</p>
+                </div>
+              </div>
+              <div className="grid gap-4">
+                <motion.button
+                  onClick={() => handleRoleSelect('apprenant')}
+                  whileHover={{ scale: 1.02, x: 4 }} whileTap={{ scale: 0.98 }}
+                  className="flex items-center gap-4 w-full text-left bg-indigo-50 border-2 border-indigo-100 rounded-2xl px-5 py-5 hover:border-indigo-400 hover:shadow-md transition-all group"
+                >
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-2xl shadow flex-shrink-0">🎓</div>
+                  <div className="flex-1">
+                    <div className="font-black text-slate-800 text-base">Je suis apprenant(e)</div>
+                    <div className="text-sm text-slate-500 mt-0.5">Je veux préparer le TCF Canada pour mon immigration, mes études ou mon travail</div>
+                  </div>
+                  <span className="text-slate-300 group-hover:text-indigo-500 transition-colors text-xl">→</span>
+                </motion.button>
+                <motion.button
+                  onClick={() => handleRoleSelect('professeur')}
+                  disabled={saving}
+                  whileHover={{ scale: 1.02, x: 4 }} whileTap={{ scale: 0.98 }}
+                  className="flex items-center gap-4 w-full text-left bg-emerald-50 border-2 border-emerald-100 rounded-2xl px-5 py-5 hover:border-emerald-400 hover:shadow-md transition-all group disabled:opacity-60"
+                >
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-2xl shadow flex-shrink-0">👨‍🏫</div>
+                  <div className="flex-1">
+                    <div className="font-black text-slate-800 text-base">Je suis professeur(e)</div>
+                    <div className="text-sm text-slate-500 mt-0.5">Je veux créer des classes, suivre mes élèves et corriger leurs exercices</div>
+                  </div>
+                  {saving ? <span className="animate-spin text-emerald-500">⏳</span> : <span className="text-slate-300 group-hover:text-emerald-500 transition-colors text-xl">→</span>}
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
 
           {/* ── ÉTAPE 1 : Objectif ─────────────────────────── */}
           {step === 'goal' && (

@@ -74,6 +74,32 @@ export const api = {
     history: (userId: string, token?: string) =>
       request<{ history: HistoryItem[] }>(`/api/progress/history/${userId}`, {}, token),
   },
+  classes: {
+    create: (body: { name: string; description?: string; professorId: string }, token?: string) =>
+      request<ClassData>('/api/classes', { method: 'POST', body: JSON.stringify(body) }, token),
+    listByProf: (professorId: string, token?: string) =>
+      request<{ classes: ClassSummary[] }>(`/api/classes/prof/${professorId}`, {}, token),
+    get: (id: string, token?: string) =>
+      request<ClassDetail>(`/api/classes/${id}`, {}, token),
+    delete: (id: string, token?: string) =>
+      request<{ ok: boolean }>(`/api/classes/${id}`, { method: 'DELETE' }, token),
+    join: (body: { inviteCode: string; studentId: string }, token?: string) =>
+      request<{ class: ClassData; membership: object }>('/api/classes/join', { method: 'POST', body: JSON.stringify(body) }, token),
+    listByStudent: (studentId: string, token?: string) =>
+      request<{ classes: ClassData[] }>(`/api/classes/student/${studentId}`, {}, token),
+  },
+  submissions: {
+    submit: (body: SubmissionInput, token?: string) =>
+      request<ExerciseSubmission>('/api/classes/submissions', { method: 'POST', body: JSON.stringify(body) }, token),
+    listForProf: (professorId: string, status?: 'pending' | 'corrected', token?: string) => {
+      const q = status ? `?status=${status}` : '';
+      return request<{ submissions: ExerciseSubmission[] }>(`/api/classes/submissions/prof/${professorId}${q}`, {}, token);
+    },
+    listForStudent: (studentId: string, token?: string) =>
+      request<{ submissions: ExerciseSubmission[] }>(`/api/classes/submissions/student/${studentId}`, {}, token),
+    correct: (id: string, body: CorrectionInput, token?: string) =>
+      request<ExerciseSubmission>(`/api/classes/submissions/${id}/correct`, { method: 'PATCH', body: JSON.stringify(body) }, token),
+  },
 };
 
 export type Question = {
@@ -98,4 +124,36 @@ export type DashboardData = {
 export type HistoryItem = {
   id: string; section: string; score: number; total: number;
   correct: number; durationS: number; createdAt: string;
+};
+export type ClassData = {
+  id: string; name: string; description?: string;
+  inviteCode: string; professorId: string; createdAt: string;
+};
+export type ClassSummary = ClassData & {
+  members: { studentId: string; joinedAt: string }[];
+  _count: { submissions: number };
+};
+export type StudentStat = {
+  studentId: string; globalAverage: number | null; totalAttempts: number;
+  joinedAt: string;
+  stats: { section: string; averageScore: number | null; attempts: number }[];
+};
+export type ClassDetail = ClassData & {
+  members: { studentId: string; joinedAt: string }[];
+  studentStats: StudentStat[];
+};
+export type ExerciseSubmission = {
+  id: string; studentId: string; classId?: string; section: string;
+  question: string; answer: string; status: 'pending' | 'corrected';
+  score?: number; feedback?: string; strengths: string[]; errors: string[];
+  correctedBy?: string; correctedAt?: string; createdAt: string;
+  className?: string;
+};
+export type SubmissionInput = {
+  studentId: string; classId?: string; section: 'EE' | 'EO';
+  question: string; answer: string;
+};
+export type CorrectionInput = {
+  score: number; feedback: string;
+  strengths: string[]; errors: string[]; correctedBy: string;
 };

@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
 }
 
 datasource db {
@@ -68,4 +69,53 @@ enum ResultSection {
   EE
   EO
   MOCK
+}
+
+enum UserRole {
+  apprenant
+  professeur
+}
+
+model Class {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  inviteCode  String            @unique
+  professorId String
+  createdAt   DateTime          @default(now())
+  members     ClassMembership[]
+  submissions ExerciseSubmission[]
+}
+
+model ClassMembership {
+  id        String   @id @default(cuid())
+  classId   String
+  studentId String
+  joinedAt  DateTime @default(now())
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, studentId])
+}
+
+model ExerciseSubmission {
+  id           String            @id @default(cuid())
+  studentId    String
+  classId      String?
+  section      String
+  question     String
+  answer       String
+  status       SubmissionStatus  @default(pending)
+  score        Int?
+  feedback     String?
+  strengths    String[]          @default([])
+  errors       String[]          @default([])
+  correctedBy  String?
+  correctedAt  DateTime?
+  createdAt    DateTime          @default(now())
+  class        Class?            @relation(fields: [classId], references: [id])
+}
+
+enum SubmissionStatus {
+  pending
+  corrected
 }
