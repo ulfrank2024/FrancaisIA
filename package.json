@@ -1,0 +1,21 @@
+{
+  "name": "francaisIA-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "seed": "ts-node services/content-service/src/seed/seed.ts"
+  },
+  "devDependencies": {
+    "dotenv": "^16.6.1",
+    "prisma": "^5.22.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  }
+}
