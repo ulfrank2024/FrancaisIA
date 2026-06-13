@@ -1,45 +1,33 @@
 'use client';
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from './api';
+import { useUser, useAuth as useClerkAuth, useClerk } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 
-type AuthCtx = {
-  user: User | null;
-  login: (user: User, access: string, refresh: string) => void;
-  logout: () => void;
-  loading: boolean;
+export type AppUser = {
+  id: string;
+  email: string;
+  full_name: string;
+  avatarUrl?: string | null;
 };
 
-const AuthContext = createContext<AuthCtx>({
-  user: null, login: () => {}, logout: () => {}, loading: true,
-});
+export function useAuth() {
+  const { user, isLoaded } = useUser();
+  const { getToken } = useClerkAuth();
+  const { signOut } = useClerk();
+  const router = useRouter();
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const appUser: AppUser | null = user
+    ? {
+        id: user.id,
+        email: user.primaryEmailAddress?.emailAddress ?? '',
+        full_name: user.fullName ?? user.firstName ?? 'Utilisateur',
+        avatarUrl: user.imageUrl,
+      }
+    : null;
 
-  useEffect(() => {
-    const stored = localStorage.getItem('user');
-    if (stored) setUser(JSON.parse(stored));
-    setLoading(false);
-  }, []);
-
-  function login(u: User, access: string, refresh: string) {
-    localStorage.setItem('accessToken', access);
-    localStorage.setItem('refreshToken', refresh);
-    localStorage.setItem('user', JSON.stringify(u));
-    setUser(u);
+  async function logout() {
+    await signOut();
+    router.push('/');
   }
 
-  function logout() {
-    localStorage.clear();
-    setUser(null);
-  }
-
-  return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return { user: appUser, loading: !isLoaded, logout, getToken };
 }
-
-export const useAuth = () => useContext(AuthContext);

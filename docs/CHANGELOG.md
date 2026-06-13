@@ -1,5 +1,24 @@
 # CHANGELOG — FrançaisIA
 
+## [1.2.0] — 2026-06-12 · Clerk + Prisma
+
+### Ajouté
+- **Prisma ORM** : schéma unique à la racine (`prisma/schema.prisma`) avec modèles User, Question, Result
+- **Clerk Authentication** : remplacement du système JWT custom par Clerk
+  - auth-service transformé en webhook handler Clerk (svix) — sync User vers Neon via Prisma
+  - api-gateway utilise `@clerk/backend` pour vérifier les tokens Clerk
+  - Frontend : `@clerk/nextjs` avec `ClerkProvider`, `clerkMiddleware`, `useSignIn`, `useSignUp`
+  - Page register : vérification email par code (Clerk OTP)
+  - Middleware Next.js pour protéger les routes automatiquement
+- Dockerfiles mis à jour : build context à la racine pour accéder au schema Prisma
+
+### Supprimé
+- `bcryptjs`, `jsonwebtoken`, `redis` de auth-service (Clerk gère tout)
+- `@neondatabase/serverless` dans tous les services (remplacé par Prisma Client)
+- Gestion manuelle des tokens JWT (localStorage, refresh tokens)
+
+---
+
 ## [1.1.0] — 2026-06-12 · Migration base de données
 
 ### Modifié

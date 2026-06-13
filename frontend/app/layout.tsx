@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { AuthProvider } from '../lib/auth-context';
+import { ClerkProvider } from '@clerk/nextjs';
+import { frFR } from '@clerk/localizations';
 
 export const metadata: Metadata = {
   title: 'FrançaisIA — Prépare ton TCF Canada',
@@ -9,10 +10,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
-      <body>
-        <AuthProvider>{children}</AuthProvider>
-      </body>
-    </html>
+    <ClerkProvider localization={frFR}>
+      <html lang="fr">
+        <body>{children}</body>
+      </html>
+    </ClerkProvider>
   );
 }

@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ── Utilisateurs (synchronisés depuis Clerk via webhook) ──────────
+model User {
+  id        String   @id          // = Clerk user ID (format: user_xxx)
+  email     String   @unique
+  fullName  String
+  avatarUrl String?
+  level     Level    @default(A1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  results   Result[]
+}
+
+// ── Questions TCF Canada ──────────────────────────────────────────
+model Question {
+  id          String   @id @default(cuid())
+  section     Section
+  level       Level
+  question    String
+  options     Json?    // null pour EE/EO
+  answer      String?  // null pour EE/EO
+  explanation String?
+  audioUrl    String?  // pour CO
+  tags        String[] @default([])
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+// ── Résultats & progression ───────────────────────────────────────
+model Result {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  section   ResultSection
+  score     Int
+  total     Int
+  correct   Int
+  details   Json          @default("[]")
+  durationS Int?
+  createdAt DateTime      @default(now())
+}
+
+enum Level {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+enum Section {
+  CO
+  CE
+  EE
+  EO
+}
+
+enum ResultSection {
+  CO
+  CE
+  EE
+  EO
+  MOCK
+}
