@@ -85,7 +85,7 @@ function WordCount({ text, min, max }: { text: string; min?: number; max?: numbe
 
 export default function PracticePage() {
   const { section } = useParams<{ section: string }>();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, getToken } = useAuth();
   const router = useRouter();
   const sectionCode = section?.toUpperCase() as 'CO' | 'CE' | 'EE' | 'EO';
   const meta = SECTION_META[sectionCode] ?? SECTION_META.CE;
@@ -120,15 +120,17 @@ export default function PracticePage() {
     setLoading(true);
     setError(null);
     try {
+      const token = await getToken();
+      if (!token) { setError('Session expirée — reconnecte-toi.'); setLoading(false); return; }
       if (meta.isWritten) {
-        const res = await api.questions.session({ section: sectionCode as 'EE' | 'EO' });
+        const res = await api.questions.session({ section: sectionCode as 'EE' | 'EO' }, token);
         setSession(res.session);
         setTaskAnswers(['', '', '']);
         setTaskCorrections([null, null, null]);
         setTaskSubmitted([false, false, false]);
         setCurrentTask(0);
       } else {
-        const res = await api.questions.list({ section: sectionCode, limit: 8 });
+        const res = await api.questions.list({ section: sectionCode, limit: 8 }, token);
         if (res.questions.length === 0) {
           setError('Aucune question disponible pour cette section. Réessayez dans quelques secondes.');
         }
@@ -141,28 +143,31 @@ export default function PracticePage() {
       if (msg.includes('429') || msg.includes('trop')) {
         setError('Trop de requêtes — attends quelques secondes et clique Réessayer.');
       } else if (msg.includes('token') || msg.includes('401') || msg.includes('unauthorized')) {
-        setError('Session expirée — recharge la page ou reconnecte-toi.');
+        setError('Session expirée — reconnecte-toi.');
       } else {
-        setError(`Erreur : ${e instanceof Error ? e.message : 'inconnue'}`);
+        setError(`Erreur de chargement — vérifie ta connexion et réessaie.`);
       }
     } finally {
       setLoading(false);
     }
-  }, [sectionCode, meta.isWritten]);
+  }, [sectionCode, meta.isWritten, getToken]);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) { router.push('/login'); return; }
     fetchContent();
     if (meta.isWritten) {
-      api.classes.listByStudent(user.id)
-        .then(r => {
-          setStudentClasses(r.classes);
-          if (r.classes.length === 1) setSelectedClassId(r.classes[0].id);
-        })
-        .catch(() => {});
+      getToken().then(token => {
+        if (!token) return;
+        api.classes.listByStudent(user.id, token)
+          .then(r => {
+            setStudentClasses(r.classes);
+            if (r.classes.length === 1) setSelectedClassId(r.classes[0].id);
+          })
+          .catch(() => {});
+      });
     }
-  }, [authLoading, user, router, fetchContent, meta.isWritten]);
+  }, [authLoading, user, router, fetchContent, meta.isWritten, getToken]);
 
   // ── Sauvegarde et fin de session ──
   async function finishSession(finalScores: number[]) {
@@ -216,11 +221,12 @@ export default function PracticePage() {
     setCorrecting(true);
     setMood('thinking');
     try {
+      const token = await getToken();
       const res = await api.ai.correct({
         text: taskAnswers[currentTask],
         section: sectionCode,
         prompt: task.question,
-      });
+      }, token ?? undefined);
       setTaskCorrections(prev => { const n = [...prev]; n[currentTask] = res; return n; });
       setMood(res.score >= 70 ? 'celebrate' : res.score >= 50 ? 'happy' : 'encourage');
     } catch {
@@ -234,13 +240,14 @@ export default function PracticePage() {
     if (!task || !taskAnswers[currentTask].trim() || !user) return;
     setSubmitting(true);
     try {
+      const token = await getToken();
       await api.submissions.submit({
         studentId: user.id,
         classId: selectedClassId || undefined,
         section: sectionCode as 'EE' | 'EO',
         question: task.question,
         answer: taskAnswers[currentTask],
-      });
+      }, token ?? undefined);
       setTaskSubmitted(prev => { const n = [...prev]; n[currentTask] = true; return n; });
       setMood('happy');
     } catch {
