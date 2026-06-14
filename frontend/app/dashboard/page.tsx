@@ -220,7 +220,7 @@ export default function DashboardPage() {
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">{goalData.label} · NCLC {goalData.nclc} minimum requis</p>
               </div>
-              <Link href="/onboarding" className="text-xs text-indigo-600 hover:underline font-semibold">Modifier</Link>
+              <Link href="/settings" className="text-xs text-indigo-600 hover:underline font-semibold">Modifier</Link>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {(Object.keys(goalData.scores) as SectionCode[]).map(code => {

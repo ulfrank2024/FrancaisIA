@@ -140,11 +140,27 @@ type Step = 'role' | 'goal' | 'program' | 'result';
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user } = useUser();
-  const [step, setStep] = useState<Step>('role');
-  const [role, setRole] = useState<'apprenant' | 'professeur' | null>(null);
-  const [goal, setGoal] = useState<string | null>(null);
-  const [program, setProgram] = useState<string | null>(null);
+  const { user, isLoaded } = useUser();
+  const meta = (user?.unsafeMetadata ?? {}) as { role?: string; goal?: string; program?: string; completedOnboarding?: boolean };
+
+  // Si déjà onboardé, rediriger immédiatement
+  if (isLoaded && user && meta.completedOnboarding) {
+    const role = meta.role;
+    if (role === 'professeur') { router.replace('/prof/dashboard'); return null; }
+    if (role === 'pending_prof') { router.replace('/pending-approval'); return null; }
+    router.replace('/dashboard');
+    return null;
+  }
+
+  // Détecter l'étape de reprise si role déjà choisi
+  const initialStep: Step = meta.role === 'apprenant'
+    ? (meta.goal ? (meta.goal === 'immigration' && !meta.program ? 'program' : 'result') : 'goal')
+    : 'role';
+
+  const [step, setStep] = useState<Step>(initialStep);
+  const [role, setRole] = useState<'apprenant' | 'professeur' | null>(meta.role === 'apprenant' ? 'apprenant' : null);
+  const [goal, setGoal] = useState<string | null>(meta.goal ?? null);
+  const [program, setProgram] = useState<string | null>(meta.program ?? null);
   const [saving, setSaving] = useState(false);
 
   async function handleRoleSelect(r: 'apprenant' | 'professeur') {
@@ -180,6 +196,10 @@ export default function OnboardingPage() {
         router.push('/pending-approval');
       }
     } else {
+      // Sauvegarder le rôle immédiatement → plus de boucle onboarding si l'user quitte
+      await user?.update({
+        unsafeMetadata: { ...(user.unsafeMetadata ?? {}), role: 'apprenant', completedOnboarding: true },
+      }).catch(() => {});
       setStep('goal');
     }
   }
@@ -196,6 +216,9 @@ export default function OnboardingPage() {
 
   async function handleGoalSelect(g: string) {
     setGoal(g);
+    await user?.update({
+      unsafeMetadata: { ...(user.unsafeMetadata ?? {}), goal: g, program: null },
+    }).catch(() => {});
     if (g === 'immigration') {
       setStep('program');
     } else {
@@ -327,6 +350,10 @@ export default function OnboardingPage() {
                   </motion.button>
                 ))}
               </div>
+
+              <button onClick={() => setStep('role')} className="text-sm text-slate-400 hover:text-slate-600 transition-colors w-full text-center">
+                ← Retour
+              </button>
             </motion.div>
           )}
 
@@ -351,7 +378,11 @@ export default function OnboardingPage() {
                 {Object.entries(PROGRAMS).map(([key, prog]) => (
                   <motion.button
                     key={key}
-                    onClick={() => { setProgram(key); setStep('result'); }}
+                    onClick={async () => {
+                      setProgram(key);
+                      await user?.update({ unsafeMetadata: { ...(user.unsafeMetadata ?? {}), program: key } }).catch(() => {});
+                      setStep('result');
+                    }}
                     whileHover={{ scale: 1.02, x: 4 }}
                     whileTap={{ scale: 0.98 }}
                     className="flex items-center gap-4 w-full text-left bg-white border-2 border-slate-100 rounded-2xl px-5 py-4 hover:border-indigo-300 hover:shadow-md transition-all group"
@@ -511,11 +542,12 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {goal === 'immigration' && !program && (
-                <button onClick={() => setStep('program')} className="text-sm text-slate-400 hover:text-slate-600 transition-colors w-full text-center">
-                  ← Choisir un autre programme
-                </button>
-              )}
+              <button
+                onClick={() => goal === 'immigration' ? setStep('program') : setStep('goal')}
+                className="text-sm text-slate-400 hover:text-slate-600 transition-colors w-full text-center"
+              >
+                ← {goal === 'immigration' ? 'Choisir un autre programme' : 'Choisir un autre objectif'}
+              </button>
 
               <motion.button
                 onClick={handleFinish}
