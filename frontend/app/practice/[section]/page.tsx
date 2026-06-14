@@ -85,7 +85,7 @@ function WordCount({ text, min, max }: { text: string; min?: number; max?: numbe
 
 export default function PracticePage() {
   const { section } = useParams<{ section: string }>();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const sectionCode = section?.toUpperCase() as 'CO' | 'CE' | 'EE' | 'EO';
   const meta = SECTION_META[sectionCode] ?? SECTION_META.CE;
@@ -151,6 +151,7 @@ export default function PracticePage() {
   }, [sectionCode, meta.isWritten]);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) { router.push('/login'); return; }
     fetchContent();
     if (meta.isWritten) {
@@ -161,7 +162,7 @@ export default function PracticePage() {
         })
         .catch(() => {});
     }
-  }, [user, router, fetchContent, meta.isWritten]);
+  }, [authLoading, user, router, fetchContent, meta.isWritten]);
 
   // ── Sauvegarde et fin de session ──
   async function finishSession(finalScores: number[]) {

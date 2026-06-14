@@ -12,7 +12,7 @@ const SECTIONS_ORDER = ['CO', 'CE', 'EE', 'EO'] as const;
 const SECTION_ICONS: Record<string, string> = { CO: '🎧', CE: '📖', EE: '✍️', EO: '🎤' };
 
 export default function MockExamPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [exam, setExam] = useState<Record<string, Question[]>>({});
   const [currentSection, setCurrentSection] = useState(0);
@@ -34,9 +34,10 @@ export default function MockExamPage() {
   }, []);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) { router.push('/login'); return; }
     loadExam();
-  }, [user, router, loadExam]);
+  }, [authLoading, user, router, loadExam]);
 
   const sKey = SECTIONS_ORDER[currentSection];
   const sQuestions = exam[sKey] ?? [];
