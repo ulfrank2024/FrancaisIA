@@ -92,6 +92,7 @@ export default function PracticePage() {
 
   // État commun
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [mood, setMood] = useState<AvatarMood>('idle');
   const [scores, setScores] = useState<number[]>([]);
@@ -117,6 +118,7 @@ export default function PracticePage() {
 
   const fetchContent = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       if (meta.isWritten) {
         const res = await api.questions.session({ section: sectionCode as 'EE' | 'EO' });
@@ -127,9 +129,21 @@ export default function PracticePage() {
         setCurrentTask(0);
       } else {
         const res = await api.questions.list({ section: sectionCode, limit: 8 });
+        if (res.questions.length === 0) {
+          setError('Aucune question disponible pour cette section. Réessayez dans quelques secondes.');
+        }
         setQuestions(res.questions);
         setCurrent(0);
         setSelected(null);
+      }
+    } catch (e: unknown) {
+      const msg = (e instanceof Error ? e.message : String(e)).toLowerCase();
+      if (msg.includes('429') || msg.includes('trop')) {
+        setError('Trop de requêtes — attends quelques secondes et clique Réessayer.');
+      } else if (msg.includes('token') || msg.includes('401') || msg.includes('unauthorized')) {
+        setError('Session expirée — recharge la page ou reconnecte-toi.');
+      } else {
+        setError(`Erreur : ${e instanceof Error ? e.message : 'inconnue'}`);
       }
     } finally {
       setLoading(false);
@@ -254,6 +268,20 @@ export default function PracticePage() {
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4">
       <Spinner size={40} /><p className="text-slate-500">Chargement de l'épreuve...</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-5 px-4">
+      <div className="text-5xl">⚠️</div>
+      <p className="text-slate-600 font-semibold text-center max-w-sm">{error}</p>
+      <button onClick={fetchContent}
+        className="bg-indigo-600 text-white font-bold px-6 py-3 rounded-xl hover:bg-indigo-700 transition-colors">
+        Réessayer
+      </button>
+      <button onClick={() => router.push('/dashboard')} className="text-slate-400 text-sm hover:underline">
+        Retour au dashboard
+      </button>
     </div>
   );
 

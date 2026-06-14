@@ -18,6 +18,8 @@ export default function LoginPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex flex-col items-center gap-6">
           <SophieAvatar mood="idle" size="sm" showMessage={false} />
           <SignIn
+            fallbackRedirectUrl="/redirect"
+            signUpUrl="/register"
             appearance={{
               elements: {
                 card: 'shadow-xl border border-slate-100 rounded-3xl w-full',

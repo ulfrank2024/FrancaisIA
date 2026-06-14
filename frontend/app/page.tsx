@@ -158,10 +158,14 @@ export default function Home() {
   const [heroMood, setHeroMood] = useState<'idle' | 'happy' | 'celebrate'>('idle');
 
   useEffect(() => {
+    const fallback = { totalUsers: 2134, totalSessions: 13210, averageScore: 74, successRate: 87 };
     fetch(`${BASE}/api/stats`)
-      .then(r => r.json())
-      .then(setStats)
-      .catch(() => setStats({ totalUsers: 2134, totalSessions: 13210, averageScore: 74, successRate: 87 }));
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => {
+        if (d && typeof d.totalUsers === 'number') setStats(d);
+        else setStats(fallback);
+      })
+      .catch(() => setStats(fallback));
 
     const t1 = setTimeout(() => setHeroMood('happy'), 2000);
     const t2 = setTimeout(() => setHeroMood('celebrate'), 4500);
@@ -277,7 +281,7 @@ export default function Home() {
               </div>
               <div>
                 <div className="flex gap-0.5 text-amber-400 text-xs">★★★★★</div>
-                <div className="text-xs text-slate-500">+{stats ? (stats.totalUsers).toLocaleString('fr-CA') : '2 134'} apprenants</div>
+                <div className="text-xs text-slate-500">+{stats?.totalUsers ? stats.totalUsers.toLocaleString('fr-CA') : '2 134'} apprenants</div>
               </div>
             </div>
             <div className="flex items-center gap-1.5 text-sm text-slate-500">
@@ -578,7 +582,7 @@ export default function Home() {
           >
             <div className="flex gap-1 text-amber-400 text-2xl">★★★★★</div>
             <div className="text-slate-800 font-black text-xl">4,9/5</div>
-            <div className="text-slate-500 text-sm">Basé sur {stats ? stats.totalUsers.toLocaleString('fr-CA') : '2 134'}+ évaluations</div>
+            <div className="text-slate-500 text-sm">Basé sur {stats?.totalUsers ? stats.totalUsers.toLocaleString('fr-CA') : '2 134'}+ évaluations</div>
           </motion.div>
         </div>
       </section>
@@ -638,7 +642,7 @@ export default function Home() {
               Prêt à réussir ton TCF Canada ?
             </h2>
             <p className="text-indigo-200 text-lg max-w-xl mx-auto">
-              Rejoins {stats ? stats.totalUsers.toLocaleString('fr-CA') : '2 134'}+ apprenants de la diaspora camerounaise
+              Rejoins {stats?.totalUsers ? stats.totalUsers.toLocaleString('fr-CA') : '2 134'}+ apprenants de la diaspora camerounaise
               qui se préparent avec FrançaisIA.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">

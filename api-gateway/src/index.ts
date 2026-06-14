@@ -26,7 +26,12 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '50kb' }));
-app.use(rateLimit({ windowMs: 15 * 60_000, max: 200 }));
+app.use(rateLimit({
+  windowMs: 15 * 60_000,
+  max: 5000,
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
+  message: { error: 'Trop de requêtes, réessayez dans quelques minutes.' },
+}));
 
 // ── Middleware Clerk ──────────────────────────────────────────────
 async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
