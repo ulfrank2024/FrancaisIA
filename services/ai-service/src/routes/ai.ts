@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
-import Anthropic from '@anthropic-ai/sdk';
+import Groq from 'groq-sdk';
 import { z } from 'zod';
 
 const router = Router();
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const MODEL = 'llama-3.3-70b-versatile';
 
 const TUTOR_SYSTEM = `Tu es Sophie, une tutrice experte en français langue seconde, spécialisée dans la préparation au TCF Canada.
 Tu aides les candidats à améliorer leur français pour réussir leur immigration au Canada.
@@ -37,8 +38,7 @@ router.post('/correct', async (req: Request, res: Response): Promise<void> => {
   }
   const { text, section, prompt } = parsed.data;
 
-  const userMessage = `
-Section TCF: ${section === 'EE' ? 'Expression Écrite' : 'Expression Orale'}
+  const userMessage = `Section TCF: ${section === 'EE' ? 'Expression Écrite' : 'Expression Orale'}
 ${prompt ? `Consigne: ${prompt}` : ''}
 
 Texte de l'apprenant:
@@ -46,31 +46,33 @@ Texte de l'apprenant:
 ${text}
 """
 
-Fournis une correction structurée avec:
-1. Score /100
-2. Points forts (2-3 éléments)
-3. Erreurs à corriger (avec explications claires)
-4. Version corrigée du texte
-5. Conseils personnalisés pour progresser
-
-Réponds en JSON avec les clés: score, strengths (string[]), errors ({text, correction, rule}[]), correctedVersion, tips (string[]).`;
+Fournis une correction structurée. Réponds UNIQUEMENT en JSON valide avec exactement ces clés:
+{
+  "score": <nombre entre 0 et 100>,
+  "strengths": ["point fort 1", "point fort 2"],
+  "errors": [{"text": "texte erroné", "correction": "correction", "rule": "règle grammaticale"}],
+  "correctedVersion": "version corrigée complète",
+  "tips": ["conseil 1", "conseil 2"]
+}`;
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+    const response = await groq.chat.completions.create({
+      model: MODEL,
       max_tokens: 1024,
-      system: TUTOR_SYSTEM,
-      messages: [{ role: 'user', content: userMessage }],
+      temperature: 0.3,
+      messages: [
+        { role: 'system', content: TUTOR_SYSTEM },
+        { role: 'user', content: userMessage },
+      ],
     });
 
-    const content = response.content[0];
-    if (content.type !== 'text') throw new Error('Réponse inattendue');
-
-    const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+    const content = response.choices[0]?.message?.content ?? '';
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Format de réponse invalide');
 
     res.json(JSON.parse(jsonMatch[0]));
   } catch (err) {
+    console.error('[ai/correct]', err);
     res.status(500).json({ error: 'Erreur lors de la correction.' });
   }
 });
@@ -88,21 +90,25 @@ router.post('/chat', async (req: Request, res: Response): Promise<void> => {
   res.setHeader('Connection', 'keep-alive');
 
   try {
-    const stream = await client.messages.stream({
-      model: 'claude-sonnet-4-6',
+    const stream = await groq.chat.completions.create({
+      model: MODEL,
       max_tokens: 512,
-      system: TUTOR_SYSTEM,
-      messages: parsed.data.messages,
+      temperature: 0.7,
+      stream: true,
+      messages: [
+        { role: 'system', content: TUTOR_SYSTEM },
+        ...parsed.data.messages,
+      ],
     });
 
     for await (const chunk of stream) {
-      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-        res.write(`data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`);
-      }
+      const text = chunk.choices[0]?.delta?.content ?? '';
+      if (text) res.write(`data: ${JSON.stringify({ text })}\n\n`);
     }
     res.write('data: [DONE]\n\n');
     res.end();
-  } catch {
+  } catch (err) {
+    console.error('[ai/chat]', err);
     res.write('data: {"error":"Erreur de connexion avec l\'IA."}\n\n');
     res.end();
   }
@@ -117,19 +123,23 @@ router.post('/explain', async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+    const response = await groq.chat.completions.create({
+      model: MODEL,
       max_tokens: 600,
-      system: TUTOR_SYSTEM,
-      messages: [{
-        role: 'user',
-        content: `Explique ce point de grammaire de façon claire et simple pour un apprenant préparant le TCF Canada : "${parsed.data.topic}". Donne 2 exemples concrets et une règle facile à retenir.`,
-      }],
+      temperature: 0.5,
+      messages: [
+        { role: 'system', content: TUTOR_SYSTEM },
+        {
+          role: 'user',
+          content: `Explique ce point de grammaire de façon claire et simple pour un apprenant préparant le TCF Canada : "${parsed.data.topic}". Donne 2 exemples concrets et une règle facile à retenir.`,
+        },
+      ],
     });
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    const text = response.choices[0]?.message?.content ?? '';
     res.json({ explanation: text });
-  } catch {
+  } catch (err) {
+    console.error('[ai/explain]', err);
     res.status(500).json({ error: "Erreur lors de l'explication." });
   }
 });
