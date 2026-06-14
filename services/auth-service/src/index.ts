@@ -19,7 +19,7 @@ app.use('/webhooks', express.raw({ type: 'application/json' }), (req, _res, next
 });
 
 app.use(express.json({ limit: '10kb' }));
-app.use(rateLimit({ windowMs: 60_000, max: 50 }));
+app.use(rateLimit({ windowMs: 60_000, max: process.env.NODE_ENV === 'production' ? 50 : 100_000 }));
 
 app.use('/webhooks', webhookRoutes);
 

@@ -10,7 +10,7 @@ const PORT = process.env.CONTENT_PORT || 4002;
 app.use(helmet());
 app.use(cors({ origin: process.env.ALLOWED_ORIGIN }));
 app.use(express.json({ limit: '10kb' }));
-app.use(rateLimit({ windowMs: 60_000, max: 100 }));
+app.use(rateLimit({ windowMs: 60_000, max: process.env.NODE_ENV === 'production' ? 100 : 100_000 }));
 
 app.use('/questions', questionsRoutes);
 
