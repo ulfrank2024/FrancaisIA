@@ -150,7 +150,9 @@ export default function PracticePage() {
     } finally {
       setLoading(false);
     }
-  }, [sectionCode, meta.isWritten, getToken]);
+  // getToken est stable (Clerk), pas besoin dans les deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectionCode, meta.isWritten]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -167,7 +169,9 @@ export default function PracticePage() {
           .catch(() => {});
       });
     }
-  }, [authLoading, user, router, fetchContent, meta.isWritten, getToken]);
+  // getToken est stable (Clerk), pas besoin dans les deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user, router, fetchContent, meta.isWritten]);
 
   // ── Sauvegarde et fin de session ──
   async function finishSession(finalScores: number[]) {

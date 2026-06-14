@@ -1,4 +1,5 @@
 'use client';
+import { useMemo } from 'react';
 import { useUser, useAuth as useClerkAuth, useClerk } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 
@@ -15,14 +16,15 @@ export function useAuth() {
   const { signOut } = useClerk();
   const router = useRouter();
 
-  const appUser: AppUser | null = user
-    ? {
-        id: user.id,
-        email: user.primaryEmailAddress?.emailAddress ?? '',
-        full_name: user.fullName ?? user.firstName ?? 'Utilisateur',
-        avatarUrl: user.imageUrl,
-      }
-    : null;
+  const appUser = useMemo<AppUser | null>(() => {
+    if (!user) return null;
+    return {
+      id: user.id,
+      email: user.primaryEmailAddress?.emailAddress ?? '',
+      full_name: user.fullName ?? user.firstName ?? 'Utilisateur',
+      avatarUrl: user.imageUrl,
+    };
+  }, [user?.id, user?.primaryEmailAddress?.emailAddress, user?.fullName, user?.firstName, user?.imageUrl]);
 
   async function logout() {
     await signOut();
