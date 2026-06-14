@@ -1,9 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import SophieAvatar from '../../components/SophieAvatar';
+import Spinner from '../../components/Spinner';
 
 // ── Données officielles TCF Canada (source : France Éducation International) ─
 type SectionCode = 'CO' | 'CE' | 'EE' | 'EO';
@@ -141,27 +142,41 @@ type Step = 'role' | 'goal' | 'program' | 'result';
 export default function OnboardingPage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
-  const meta = (user?.unsafeMetadata ?? {}) as { role?: string; goal?: string; program?: string; completedOnboarding?: boolean };
 
-  // Si déjà onboardé, rediriger immédiatement
-  if (isLoaded && user && meta.completedOnboarding) {
-    const role = meta.role;
-    if (role === 'professeur') { router.replace('/prof/dashboard'); return null; }
-    if (role === 'pending_prof') { router.replace('/pending-approval'); return null; }
-    router.replace('/dashboard');
-    return null;
-  }
-
-  // Détecter l'étape de reprise si role déjà choisi
-  const initialStep: Step = meta.role === 'apprenant'
-    ? (meta.goal ? (meta.goal === 'immigration' && !meta.program ? 'program' : 'result') : 'goal')
-    : 'role';
-
-  const [step, setStep] = useState<Step>(initialStep);
-  const [role, setRole] = useState<'apprenant' | 'professeur' | null>(meta.role === 'apprenant' ? 'apprenant' : null);
-  const [goal, setGoal] = useState<string | null>(meta.goal ?? null);
-  const [program, setProgram] = useState<string | null>(meta.program ?? null);
+  // ── Tous les hooks en premier — aucun return avant cette ligne ──
+  const [step, setStep] = useState<Step>('role');
+  const [role, setRole] = useState<'apprenant' | 'professeur' | null>(null);
+  const [goal, setGoal] = useState<string | null>(null);
+  const [program, setProgram] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+
+  // Initialiser l'état depuis les métadonnées Clerk une fois chargé
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+    const meta = (user.unsafeMetadata ?? {}) as { role?: string; goal?: string; program?: string; completedOnboarding?: boolean };
+
+    // Déjà onboardé → rediriger sans repasser par l'onboarding
+    if (meta.completedOnboarding) {
+      setRedirecting(true);
+      if (meta.role === 'professeur') { router.replace('/prof/dashboard'); return; }
+      if (meta.role === 'pending_prof') { router.replace('/pending-approval'); return; }
+      router.replace('/dashboard');
+      return;
+    }
+
+    // Reprendre à l'étape sauvegardée
+    if (meta.role === 'apprenant') {
+      setRole('apprenant');
+      if (meta.goal) {
+        setGoal(meta.goal);
+        if (meta.program) setProgram(meta.program);
+        setStep(meta.goal === 'immigration' && !meta.program ? 'program' : 'result');
+      } else {
+        setStep('goal');
+      }
+    }
+  }, [isLoaded, user, router]);
 
   async function handleRoleSelect(r: 'apprenant' | 'professeur') {
     setRole(r);
@@ -249,6 +264,13 @@ export default function OnboardingPage() {
   };
 
   const resultScores = getResultScores();
+
+  // Spinner pendant le chargement Clerk ou la redirection
+  if (!isLoaded || redirecting) return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-cyan-50">
+      <Spinner size={36} />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex flex-col items-center justify-center px-4 py-12">
