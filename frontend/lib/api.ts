@@ -32,6 +32,10 @@ export const api = {
       const q = new URLSearchParams(params as Record<string, string>).toString();
       return request<{ questions: Question[]; total: number }>(`/api/questions${q ? `?${q}` : ''}`, {}, token);
     },
+    session: (params: { section: 'EE' | 'EO'; level?: string }, token?: string) => {
+      const q = new URLSearchParams(params as Record<string, string>).toString();
+      return request<{ session: EpreuvSession }>(`/api/questions/session?${q}`, {}, token);
+    },
     mockExam: (token?: string) =>
       request<{ exam: Record<string, Question[]>; totalQuestions: number }>('/api/questions/mock-exam', {}, token),
   },
@@ -105,7 +109,14 @@ export const api = {
 export type Question = {
   id: string; section: string; level: string; question: string;
   options?: Record<string, string> | null; answer?: string | null;
-  explanation?: string; audioUrl?: string;
+  explanation?: string; audioUrl?: string; transcript?: string;
+  theme?: string; imageUrl?: string; timeLimitMin?: number;
+  taskNumber?: number; sessionGroup?: string;
+  wordCountMin?: number; wordCountMax?: number;
+};
+export type EpreuvSession = {
+  group: string; level: string; theme: string;
+  tasks: Question[];
 };
 export type CorrectionResult = {
   score: number; strengths: string[];

@@ -21,17 +21,25 @@ model User {
 }
 
 model Question {
-  id          String   @id @default(cuid())
-  section     Section
-  level       Level
-  question    String
-  options     Json?
-  answer      String?
-  explanation String?
-  audioUrl    String?
-  tags        String[] @default([])
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  section      Section
+  level        Level
+  question     String
+  options      Json?
+  answer       String?
+  explanation  String?
+  audioUrl     String?
+  transcript   String?  // CO: texte lu par TTS
+  taskNumber   Int?     // EE/EO: numéro de tâche dans la session (1, 2 ou 3)
+  sessionGroup String?  // EE/EO: identifiant de session (regroupe 3 tâches)
+  theme        String?  // thème (immigration, travail, famille, santé...)
+  wordCountMin Int?     // EE: nombre de mots minimum attendu
+  wordCountMax Int?     // EE: nombre de mots maximum attendu
+  timeLimitMin Int?     // durée suggérée en minutes
+  imageUrl     String?  // EO: URL image à décrire (Unsplash)
+  tags         String[] @default([])
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
 }
 
 model Result {
