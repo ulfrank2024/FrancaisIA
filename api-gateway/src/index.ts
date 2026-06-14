@@ -28,8 +28,7 @@ app.use(cors({
 app.use(express.json({ limit: '50kb' }));
 app.use(rateLimit({
   windowMs: 15 * 60_000,
-  max: 5000,
-  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
+  max: process.env.NODE_ENV === 'production' ? 500 : 100_000,
   message: { error: 'Trop de requêtes, réessayez dans quelques minutes.' },
 }));
 
