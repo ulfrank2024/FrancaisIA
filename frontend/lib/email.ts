@@ -75,7 +75,7 @@ export async function sendBrevo(opts: {
     method: 'POST',
     headers: { 'api-key': key, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      sender:      opts.from ?? { name: 'RéussirTCF', email: 'noreply@reussirtcf.ca' },
+      sender:      opts.from ?? { name: 'RéussirTCF', email: process.env.BREVO_FROM_EMAIL || 'frranklinlontsi99@gmail.com' },
       to:          [{ email: opts.to }],
       ...(opts.replyTo ? { replyTo: { email: opts.replyTo } } : {}),
       subject:     opts.subject,

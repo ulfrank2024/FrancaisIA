@@ -48,7 +48,7 @@ export async function sendBrevo(to: string, subject: string, html: string) {
     method: 'POST',
     headers: { 'api-key': key, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      sender:      { name: 'RéussirTCF', email: 'noreply@reussirtcf.ca' },
+      sender:      { name: 'RéussirTCF', email: process.env.BREVO_FROM_EMAIL || 'frranklinlontsi99@gmail.com' },
       to:          [{ email: to }],
       subject,
       htmlContent: emailTemplate(html),
