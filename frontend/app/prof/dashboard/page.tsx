@@ -14,6 +14,7 @@ export default function ProfDashboardPage() {
   const [classes, setClasses] = useState<ClassSummary[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<{ correctedCount: number; totalSubs: number; sectionDist: Record<string, number>; correctionRate: number } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -24,9 +25,15 @@ export default function ProfDashboardPage() {
     Promise.all([
       api.classes.listByProf(user.id),
       api.submissions.listForProf(user.id, 'pending'),
-    ]).then(([cls, subs]) => {
+      api.submissions.listForProf(user.id),
+    ]).then(([cls, pending, allSubs]) => {
       setClasses(cls.classes);
-      setPendingCount(subs.submissions.length);
+      setPendingCount(pending.submissions.length);
+      const total = allSubs.submissions.length;
+      const corrected = allSubs.submissions.filter(s => s.status === 'corrected').length;
+      const dist: Record<string, number> = {};
+      allSubs.submissions.forEach(s => { dist[s.section] = (dist[s.section] ?? 0) + 1; });
+      setAnalytics({ totalSubs: total, correctedCount: corrected, sectionDist: dist, correctionRate: total > 0 ? Math.round((corrected / total) * 100) : 0 });
     }).catch(() => {}).finally(() => setLoading(false));
   }, [user]);
 
@@ -77,6 +84,65 @@ export default function ProfDashboardPage() {
             </motion.div>
           ))}
         </div>
+
+        {/* Analytique */}
+        {analytics && analytics.totalSubs > 0 && (
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            className="bg-white rounded-3xl p-5 sm:p-6 shadow-md border border-slate-100">
+            <h2 className="text-base font-black text-slate-800 mb-4">Analytique globale</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
+              {[
+                { label: 'Soumissions totales', value: analytics.totalSubs, icon: '📝', color: 'from-indigo-400 to-violet-500' },
+                { label: 'Taux de correction', value: `${analytics.correctionRate}%`, icon: '✅', color: analytics.correctionRate >= 80 ? 'from-emerald-400 to-teal-500' : 'from-amber-400 to-orange-400' },
+                { label: 'En attente', value: pendingCount, icon: '⏳', color: pendingCount > 0 ? 'from-orange-400 to-red-400' : 'from-slate-300 to-slate-400' },
+              ].map(s => (
+                <div key={s.label} className="bg-slate-50 rounded-2xl p-4 text-center">
+                  <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center text-base mx-auto mb-2`}>{s.icon}</div>
+                  <div className="text-xl font-black text-slate-800">{s.value}</div>
+                  <div className="text-xs text-slate-500 mt-0.5 leading-tight">{s.label}</div>
+                </div>
+              ))}
+            </div>
+            {/* Répartition par section */}
+            {Object.keys(analytics.sectionDist).length > 0 && (
+              <div>
+                <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-2">Répartition des soumissions</div>
+                <div className="flex gap-2 flex-wrap">
+                  {[{ code: 'EE', color: 'from-emerald-400 to-teal-500' }, { code: 'EO', color: 'from-rose-400 to-pink-500' }].map(({ code, color }) => {
+                    const count = analytics.sectionDist[code] ?? 0;
+                    const pct = analytics.totalSubs > 0 ? Math.round((count / analytics.totalSubs) * 100) : 0;
+                    return (
+                      <div key={code} className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2">
+                        <div className={`w-2 h-6 rounded-full bg-gradient-to-b ${color}`} />
+                        <div>
+                          <div className="text-xs font-black text-slate-700">{code}</div>
+                          <div className="text-xs text-slate-400">{count} · {pct}%</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {/* Félicitations si taux 100% */}
+            {analytics.correctionRate === 100 && (
+              <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+                <span className="text-2xl">🏆</span>
+                <div className="text-sm font-bold text-emerald-700">Toutes les soumissions sont corrigées. Excellent suivi !</div>
+              </div>
+            )}
+            {/* Alerte si beaucoup en attente */}
+            {pendingCount >= 5 && (
+              <div className="mt-3 bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div>
+                  <div className="text-sm font-black text-orange-700">{pendingCount} corrections en attente</div>
+                  <div className="text-xs text-orange-600">Tes apprenants attendent ton retour. Prends un moment pour corriger.</div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* Liste des classes */}
         <div>

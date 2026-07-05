@@ -32,6 +32,9 @@ export default function ClassDetailPage() {
   const [cls, setCls] = useState<ClassDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -45,6 +48,21 @@ export default function ClassDetailPage() {
   function copyCode() {
     if (!cls) return;
     navigator.clipboard.writeText(cls.inviteCode).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  }
+
+  function copyLink() {
+    if (!cls) return;
+    const link = `${window.location.origin}/join?code=${cls.inviteCode}`;
+    navigator.clipboard.writeText(link).then(() => { setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2000); });
+  }
+
+  async function handleDelete() {
+    if (!cls) return;
+    setDeleting(true);
+    try {
+      await api.classes.delete(cls.id);
+      router.push('/prof/dashboard');
+    } catch { setDeleting(false); setConfirmDelete(false); }
   }
 
   if (authLoading || loading) return <div className="min-h-screen flex items-center justify-center"><Spinner size={40} /></div>;
@@ -77,7 +95,29 @@ export default function ClassDetailPage() {
                   {copied ? '✓ Copié !' : '📋'}
                 </button>
               </div>
-              <p className="text-xs text-slate-400 text-right">Partage ce code à tes apprenants</p>
+              <button
+                onClick={copyLink}
+                className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl px-4 py-2 transition-colors w-full sm:w-auto"
+              >
+                <span className="text-indigo-600 text-sm">{copiedLink ? '✓ Lien copié !' : '🔗 Copier le lien d\'invitation'}</span>
+              </button>
+              <p className="text-xs text-slate-400 text-right">L&apos;apprenant clique → code pré-rempli automatiquement</p>
+              {/* Supprimer la classe */}
+              {confirmDelete ? (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                  <span className="text-xs text-red-700 font-semibold flex-1">Supprimer définitivement ?</span>
+                  <button onClick={handleDelete} disabled={deleting}
+                    className="text-xs bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                    {deleting ? '…' : 'Confirmer'}
+                  </button>
+                  <button onClick={() => setConfirmDelete(false)} className="text-xs text-slate-500 hover:text-slate-700 px-2">Annuler</button>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmDelete(true)}
+                  className="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-red-200">
+                  🗑 Supprimer la classe
+                </button>
+              )}
             </div>
           </div>
 
@@ -111,8 +151,7 @@ export default function ClassDetailPage() {
                       <div className="flex items-center gap-4">
                         {/* Avatar DiceBear */}
                         <img
-                          src={`https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${student.studentId}&backgroundColor=b6e3f4`}
-                          className="w-12 h-12 rounded-full border-2 border-white shadow flex-shrink-0"
+                          src={`https://api.dicebear.com/9.x/personas/svg?seed=${student.studentId}`} className="w-12 h-12 rounded-full border-2 border-white shadow flex-shrink-0"
                           alt="avatar"
                         />
                         <div className="flex-1 min-w-0">

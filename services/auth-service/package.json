@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "vercel-build": "cp -r ../../prisma . && npx prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.8.0",

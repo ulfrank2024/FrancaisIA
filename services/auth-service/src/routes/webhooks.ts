@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { Webhook } from 'svix';
 import { prisma } from '../db/prisma';
+import { sendBrevo } from '../email';
 
 const router = Router();
 
@@ -57,6 +58,46 @@ router.post('/clerk', async (req: Request, res: Response): Promise<void> => {
           avatarUrl: data.image_url,
         },
       });
+
+      // Email de bienvenue (fire-and-forget)
+      if (primaryEmail) {
+        sendBrevo(
+          primaryEmail,
+          '🍁 Bienvenue sur RéussirTCF !',
+          `
+          <h2 style="color:#111827;margin:0 0 8px">Bienvenue, ${fullName} ! 🎉</h2>
+          <p style="color:#6b7280;margin:0 0 24px">Ton compte est prêt. Commence dès maintenant à préparer ton TCF Canada avec Sophie, ta tutrice IA.</p>
+
+          <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+            <tr style="background:#fef2f2">
+              <td style="padding:14px 16px;border:1px solid #fecaca">🎧</td>
+              <td style="padding:14px 16px;border:1px solid #fecaca"><strong>Compréhension Orale</strong> — 39 questions avec audio</td>
+            </tr>
+            <tr>
+              <td style="padding:14px 16px;border:1px solid #e5e7eb">📖</td>
+              <td style="padding:14px 16px;border:1px solid #e5e7eb"><strong>Compréhension Écrite</strong> — 39 questions et passages</td>
+            </tr>
+            <tr style="background:#fef2f2">
+              <td style="padding:14px 16px;border:1px solid #fecaca">✍️</td>
+              <td style="padding:14px 16px;border:1px solid #fecaca"><strong>Expression Écrite</strong> — Corrections IA instantanées</td>
+            </tr>
+            <tr>
+              <td style="padding:14px 16px;border:1px solid #e5e7eb">🎤</td>
+              <td style="padding:14px 16px;border:1px solid #e5e7eb"><strong>Expression Orale</strong> — Sujets et feedback IA</td>
+            </tr>
+          </table>
+
+          <a href="https://reussirtcf.ca/dashboard"
+             style="display:inline-block;background:#dc2626;color:#ffffff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:900;font-size:15px">
+            Commencer à pratiquer →
+          </a>
+
+          <p style="color:#9ca3af;font-size:12px;margin-top:24px">
+            Des questions ? Écris-nous à <a href="mailto:support@reussirtcf.ca" style="color:#dc2626">support@reussirtcf.ca</a>
+          </p>
+          `
+        ).catch(err => console.error('[Brevo] Bienvenue:', err));
+      }
     } else if (type === 'user.updated') {
       await prisma.user.upsert({
         where: { id: data.id },

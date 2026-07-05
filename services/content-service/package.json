@@ -5,7 +5,8 @@
     "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "seed": "ts-node src/seed/seed.ts"
+    "seed": "ts-node src/seed/seed.ts",
+    "vercel-build": "cp -r ../../prisma . && npx prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.8.0",

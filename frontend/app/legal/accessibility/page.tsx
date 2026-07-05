@@ -1,12 +1,12 @@
 import LegalLayout from '../../../components/LegalLayout';
 
-export const metadata = { title: 'Accessibilité — FrançaisIA' };
+export const metadata = { title: 'Accessibilité — RéussirTCF' };
 
 export default function AccessibilityPage() {
   return (
     <LegalLayout
       title="Accessibilité"
-      subtitle="FrançaisIA s'engage à rendre son service accessible à tous"
+      subtitle="RéussirTCF s'engage à rendre son service accessible à tous"
       icon="♿"
       lastUpdated="13 juin 2026"
     >
@@ -14,7 +14,7 @@ export default function AccessibilityPage() {
 
         <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
           <p className="text-indigo-800 font-medium">
-            FrançaisIA s'engage à rendre sa plateforme accessible aux personnes en situation de handicap, conformément aux <strong>Règles pour l'accessibilité des contenus Web (WCAG) 2.1 niveau AA</strong> et aux exigences de la <strong>Loi canadienne sur l'accessibilité</strong>.
+            RéussirTCF s'engage à rendre sa plateforme accessible aux personnes en situation de handicap, conformément aux <strong>Règles pour l'accessibilité des contenus Web (WCAG) 2.1 niveau AA</strong> et aux exigences de la <strong>Loi canadienne sur l'accessibilité</strong>.
           </p>
         </div>
 
@@ -101,10 +101,10 @@ export default function AccessibilityPage() {
         </Section>
 
         <Section title="5. Signaler un problème d'accessibilité">
-          <p>Si vous rencontrez un obstacle lors de l'utilisation de FrançaisIA, nous souhaitons le corriger rapidement. Contactez-nous :</p>
+          <p>Si vous rencontrez un obstacle lors de l'utilisation de RéussirTCF, nous souhaitons le corriger rapidement. Contactez-nous :</p>
           <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5 mt-3">
             <div className="space-y-2">
-              <div>📧 <a href="mailto:accessibility@francaisIA.ca" className="text-indigo-700 font-bold hover:underline">accessibility@francaisIA.ca</a></div>
+              <div>📧 <a href="mailto:accessibility@reussirtcf.ca" className="text-indigo-700 font-bold hover:underline">accessibility@reussirtcf.ca</a></div>
               <div>📋 <a href="/legal/report" className="text-indigo-700 hover:underline">Formulaire de signalement en ligne</a></div>
               <p className="text-xs text-slate-500 mt-2">Nous nous engageons à répondre sous <strong>5 jours ouvrables</strong> et à corriger les problèmes critiques d'accessibilité sous <strong>30 jours</strong>.</p>
             </div>

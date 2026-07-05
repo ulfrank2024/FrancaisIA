@@ -12,7 +12,44 @@ const SUGGESTIONS = [
   'Quelle est la différence entre "depuis" et "il y a" ?',
   'Peux-tu m\'aider à améliorer ma lettre de motivation ?',
   'Explique-moi les temps du passé en français',
+  'Comment structurer une réponse pour la Tâche 3 EO ?',
+  'Donne-moi des connecteurs logiques pour argumenter',
 ];
+
+function renderMarkdown(text: string): React.ReactNode {
+  const lines = text.split('\n');
+  const nodes: React.ReactNode[] = [];
+  let i = 0;
+
+  function parseInline(raw: string): React.ReactNode {
+    const parts = raw.split(/(\*\*.*?\*\*|`[^`]+`)/g);
+    return parts.map((p, j) => {
+      if (p.startsWith('**') && p.endsWith('**')) return <strong key={j} className="font-black text-slate-900">{p.slice(2, -2)}</strong>;
+      if (p.startsWith('`') && p.endsWith('`')) return <code key={j} className="bg-slate-100 text-indigo-700 px-1.5 py-0.5 rounded text-xs font-mono">{p.slice(1, -1)}</code>;
+      return p;
+    });
+  }
+
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.startsWith('### ')) { nodes.push(<p key={i} className="font-black text-slate-800 text-sm mt-3 mb-1">{parseInline(line.slice(4))}</p>); i++; }
+    else if (line.startsWith('## ')) { nodes.push(<p key={i} className="font-black text-slate-800 mt-3 mb-1">{parseInline(line.slice(3))}</p>); i++; }
+    else if (/^[-*] /.test(line)) {
+      const items: React.ReactNode[] = [];
+      while (i < lines.length && /^[-*] /.test(lines[i])) { items.push(<li key={i} className="flex gap-1.5"><span className="text-indigo-400 flex-shrink-0 mt-0.5">›</span><span>{parseInline(lines[i].slice(2))}</span></li>); i++; }
+      nodes.push(<ul key={`ul-${i}`} className="space-y-1 my-1">{items}</ul>);
+    }
+    else if (/^\d+\. /.test(line)) {
+      const items: React.ReactNode[] = [];
+      let n = 1;
+      while (i < lines.length && /^\d+\. /.test(lines[i])) { items.push(<li key={i} className="flex gap-2"><span className="text-indigo-500 font-bold flex-shrink-0 text-xs mt-0.5">{n}.</span><span>{parseInline(lines[i].replace(/^\d+\. /, ''))}</span></li>); i++; n++; }
+      nodes.push(<ol key={`ol-${i}`} className="space-y-1 my-1">{items}</ol>);
+    }
+    else if (line.trim() === '') { nodes.push(<div key={i} className="h-2" />); i++; }
+    else { nodes.push(<p key={i} className="leading-relaxed">{parseInline(line)}</p>); i++; }
+  }
+  return <div className="space-y-0.5">{nodes}</div>;
+}
 
 export default function ChatPage() {
   const { user, loading: authLoading } = useAuth();
@@ -120,18 +157,20 @@ export default function ChatPage() {
                 </div>
               )}
               <div
-                className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap
+                className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm
                   ${msg.role === 'user'
-                    ? 'bg-gradient-to-r from-indigo-600 to-cyan-500 text-white rounded-tr-sm ml-auto'
+                    ? 'bg-gradient-to-r from-indigo-600 to-cyan-500 text-white rounded-tr-sm ml-auto leading-relaxed whitespace-pre-wrap'
                     : 'bg-white border border-slate-100 text-slate-700 rounded-tl-sm shadow-sm'
                   }`}
               >
-                {msg.content}
-                {streaming && i === messages.length - 1 && msg.role === 'assistant' && !msg.content && (
-                  <span className="inline-flex gap-1 items-center">
-                    <Spinner size={14} color="#6366f1" />
-                  </span>
-                )}
+                {msg.role === 'assistant'
+                  ? msg.content
+                    ? renderMarkdown(msg.content)
+                    : streaming && i === messages.length - 1
+                      ? <Spinner size={14} color="#6366f1" />
+                      : null
+                  : msg.content
+                }
               </div>
             </motion.div>
           ))}

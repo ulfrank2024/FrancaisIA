@@ -5,233 +5,490 @@ import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Spinner from '../../components/Spinner';
+import Footer from '../../components/Footer';
+import { useAuth } from '../../lib/auth-context';
 
-type SectionCode = 'CO' | 'CE' | 'EE' | 'EO';
-type ScoreTarget = { min: number; max: number; unit: string; nclc: number };
+type SectionCode = 'EE' | 'EO' | 'CE' | 'CO';
+type PlanKey = 'free' | 'bronze' | 'silver' | 'gold';
 
-const PROGRAMS: Record<string, { label: string; icon: string; color: string; nclcMin: number | null; scores: Record<SectionCode, ScoreTarget> | null }> = {
-  fsw:    { label: 'Entrée Express FSW',      icon: '🌟', color: 'from-indigo-500 to-violet-500', nclcMin: 7, scores: { CO: { min: 458, max: 699, unit: '/699', nclc: 7 }, CE: { min: 453, max: 699, unit: '/699', nclc: 7 }, EE: { min: 10, max: 20, unit: '/20', nclc: 7 }, EO: { min: 10, max: 20, unit: '/20', nclc: 7 } } },
-  cec_ab: { label: 'Entrée Express CEC NOC 0/A', icon: '🍁', color: 'from-red-500 to-rose-500',    nclcMin: 7, scores: { CO: { min: 458, max: 699, unit: '/699', nclc: 7 }, CE: { min: 453, max: 699, unit: '/699', nclc: 7 }, EE: { min: 10, max: 20, unit: '/20', nclc: 7 }, EO: { min: 10, max: 20, unit: '/20', nclc: 7 } } },
-  cec_b:  { label: 'Entrée Express CEC NOC B',   icon: '🔧', color: 'from-orange-500 to-amber-500', nclcMin: 5, scores: { CO: { min: 369, max: 699, unit: '/699', nclc: 5 }, CE: { min: 375, max: 699, unit: '/699', nclc: 5 }, EE: { min: 6,  max: 20, unit: '/20', nclc: 5 }, EO: { min: 6,  max: 20, unit: '/20', nclc: 5 } } },
-  pnp:    { label: 'PNP Provincial',             icon: '🏙️', color: 'from-teal-500 to-cyan-500',   nclcMin: 4, scores: { CO: { min: 331, max: 699, unit: '/699', nclc: 4 }, CE: { min: 342, max: 699, unit: '/699', nclc: 4 }, EE: { min: 4,  max: 20, unit: '/20', nclc: 4 }, EO: { min: 4,  max: 20, unit: '/20', nclc: 4 } } },
-  peq:    { label: 'Québec PEQ',                 icon: '🌺', color: 'from-sky-500 to-blue-500',    nclcMin: 7, scores: { CO: { min: 458, max: 699, unit: '/699', nclc: 7 }, CE: { min: 453, max: 699, unit: '/699', nclc: 7 }, EE: { min: 10, max: 20, unit: '/20', nclc: 7 }, EO: { min: 10, max: 20, unit: '/20', nclc: 7 } } },
-  family: { label: 'Regroupement familial',      icon: '👨‍👩‍👧', color: 'from-pink-500 to-rose-500',  nclcMin: null, scores: null },
+const PLAN_DETAILS: Record<PlanKey, {
+  label: string;
+  badge: string;
+  gradient: string;
+  bg: string;
+  border: string;
+  textColor: string;
+  duration: number | null;
+  access: Record<SectionCode, {
+    type: 'illimite' | 'limite';
+    count: number | null;
+    seriesCount: number | null;
+    label: string;
+    subLabel: string;
+  }>;
+}> = {
+  free: {
+    label: 'Gratuit', badge: 'GRATUIT',
+    gradient: 'from-slate-400 to-slate-500', bg: 'bg-slate-50', border: 'border-slate-200', textColor: 'text-slate-600',
+    duration: null,
+    access: {
+      EE: { type: 'limite', count: 2,    seriesCount: null, label: 'Simulateur IA',     subLabel: 'Sessions d\'écriture' },
+      EO: { type: 'limite', count: 2,    seriesCount: null, label: 'Sujets d\'actualités', subLabel: 'Sujets avec corrections' },
+      CE: { type: 'limite', count: null, seriesCount: 3,    label: 'Séries de quiz',    subLabel: 'Séries disponibles' },
+      CO: { type: 'limite', count: null, seriesCount: 3,    label: 'Séries d\'écoute',  subLabel: 'Séries disponibles' },
+    },
+  },
+  bronze: {
+    label: 'Bronze', badge: 'BRONZE',
+    gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-50', border: 'border-amber-200', textColor: 'text-amber-700',
+    duration: 5,
+    access: {
+      EE: { type: 'limite', count: 15,   seriesCount: null, label: 'Simulateur IA',     subLabel: 'Sessions d\'écriture' },
+      EO: { type: 'limite', count: 15,   seriesCount: null, label: 'Sujets d\'actualités', subLabel: 'Sujets avec corrections' },
+      CE: { type: 'limite', count: null, seriesCount: 10,   label: 'Séries de quiz',    subLabel: 'Séries disponibles' },
+      CO: { type: 'limite', count: null, seriesCount: 10,   label: 'Séries d\'écoute',  subLabel: 'Séries disponibles' },
+    },
+  },
+  silver: {
+    label: 'Silver', badge: 'SILVER',
+    gradient: 'from-slate-400 to-slate-600', bg: 'bg-slate-50', border: 'border-slate-300', textColor: 'text-slate-700',
+    duration: 30,
+    access: {
+      EE: { type: 'illimite', count: null, seriesCount: null, label: 'Simulateur IA',     subLabel: 'Accès illimité à la correction IA' },
+      EO: { type: 'illimite', count: null, seriesCount: null, label: 'Sujets d\'actualités', subLabel: 'Tous les sujets avec corrections' },
+      CE: { type: 'illimite', count: null, seriesCount: 40,   label: 'Séries de quiz',    subLabel: 'Séries disponibles' },
+      CO: { type: 'illimite', count: null, seriesCount: 40,   label: 'Séries d\'écoute',  subLabel: 'Séries disponibles' },
+    },
+  },
+  gold: {
+    label: 'Gold', badge: 'GOLD',
+    gradient: 'from-yellow-400 to-amber-500', bg: 'bg-yellow-50', border: 'border-yellow-200', textColor: 'text-yellow-700',
+    duration: 60,
+    access: {
+      EE: { type: 'illimite', count: null, seriesCount: null, label: 'Simulateur IA',     subLabel: 'Accès illimité à la correction IA' },
+      EO: { type: 'illimite', count: null, seriesCount: null, label: 'Sujets d\'actualités', subLabel: 'Tous les sujets avec corrections' },
+      CE: { type: 'illimite', count: null, seriesCount: 40,   label: 'Séries de quiz',    subLabel: 'Séries disponibles' },
+      CO: { type: 'illimite', count: null, seriesCount: 40,   label: 'Séries d\'écoute',  subLabel: 'Séries disponibles' },
+    },
+  },
 };
 
-const GOALS = [
-  { key: 'immigration', icon: '🛂', label: 'Immigration au Canada',   sub: 'Résidence permanente',  color: 'from-indigo-500 to-violet-500', bg: 'bg-indigo-50', border: 'border-indigo-200' },
-  { key: 'citizenship', icon: '🏛️', label: 'Citoyenneté canadienne', sub: 'CLB 4 oral seulement',   color: 'from-red-500 to-rose-500',       bg: 'bg-red-50',    border: 'border-red-200' },
-  { key: 'studies',     icon: '🎓', label: 'Études au Canada',        sub: 'Université / Collège',  color: 'from-emerald-500 to-teal-500',   bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  { key: 'work',        icon: '💼', label: 'Trouver un emploi',       sub: 'Permis de travail',     color: 'from-amber-500 to-orange-500',   bg: 'bg-amber-50',  border: 'border-amber-200' },
-  { key: 'general',     icon: '📚', label: 'Améliorer mon français',  sub: 'Objectif personnel',    color: 'from-slate-400 to-slate-600',    bg: 'bg-slate-50',  border: 'border-slate-200' },
+const SECTION_META: Record<SectionCode, { icon: string; label: string; href: string; gradient: string; bg: string; iconBg: string }> = {
+  EE: { icon: '✍️', label: 'Expression Écrite',    href: '/practice/EE', gradient: 'from-emerald-500 to-teal-500',   bg: 'bg-emerald-50', iconBg: 'from-emerald-400 to-teal-500' },
+  EO: { icon: '🎤', label: 'Expression Orale',     href: '/practice/EO', gradient: 'from-rose-500 to-pink-500',      bg: 'bg-rose-50',    iconBg: 'from-rose-400 to-pink-500' },
+  CE: { icon: '📖', label: 'Compréhension Écrite', href: '/practice/CE', gradient: 'from-violet-500 to-purple-500',  bg: 'bg-violet-50',  iconBg: 'from-violet-400 to-purple-500' },
+  CO: { icon: '🎧', label: 'Compréhension Orale',  href: '/practice/CO', gradient: 'from-sky-500 to-cyan-500',       bg: 'bg-sky-50',     iconBg: 'from-sky-400 to-cyan-500' },
+};
+
+const NAV_SECTIONS: { code: SectionCode; label: string }[] = [
+  { code: 'EE', label: 'Expression écrite' },
+  { code: 'EO', label: 'Expression orale' },
+  { code: 'CE', label: 'Compréhension écrite' },
+  { code: 'CO', label: 'Compréhension orale' },
 ];
+
+function daysRemaining(endDate: string): number {
+  return Math.max(0, Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000));
+}
+function daysElapsed(startDate: string): number {
+  return Math.max(0, Math.floor((Date.now() - new Date(startDate).getTime()) / 86400000));
+}
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('fr-CA', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 
 export default function SettingsPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
-  const meta = (user?.unsafeMetadata ?? {}) as { role?: string; goal?: string; program?: string; completedOnboarding?: boolean };
-
-  const [goal, setGoal] = useState<string>(meta.goal ?? '');
-  const [program, setProgram] = useState<string>(meta.program ?? '');
-  const [section, setSection] = useState<'goal' | 'program' | null>(null);
+  const { logout } = useAuth();
+  const [examDate, setExamDate] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  if (!isLoaded) return <div className="min-h-screen flex items-center justify-center"><Spinner size={36} /></div>;
+  type UserMeta = {
+    plan?: PlanKey; subscriptionStart?: string; subscriptionEnd?: string; examDate?: string;
+    role?: string;
+  };
 
-  async function save(updates: object) {
-    setSaving(true);
-    setSaved(false);
+  const meta = (user?.unsafeMetadata ?? {}) as UserMeta;
+  const plan = (meta.plan ?? 'free') as PlanKey;
+  const planInfo = PLAN_DETAILS[plan];
+
+  const [localExamDate, setLocalExamDate] = useState(meta.examDate ?? '');
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Spinner size={36} />
+      </div>
+    );
+  }
+
+  async function handleSaveExamDate() {
+    setSaving(true); setSaved(false);
     try {
-      await user?.update({ unsafeMetadata: { ...meta, ...updates } });
+      await user?.update({ unsafeMetadata: { ...meta, examDate: localExamDate } });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   }
 
-  async function handleGoalSave(g: string) {
-    setGoal(g);
-    setSection(null);
-    if (g !== 'immigration') setProgram('');
-    await save({ goal: g, program: g !== 'immigration' ? null : program });
-  }
-
-  async function handleProgramSave(p: string) {
-    setProgram(p);
-    setSection(null);
-    await save({ program: p });
-  }
-
-  const currentGoal = GOALS.find(g => g.key === goal);
-  const currentProgram = program ? PROGRAMS[program] : null;
+  const subStart = meta.subscriptionStart;
+  const subEnd = meta.subscriptionEnd;
+  const remaining = subEnd ? daysRemaining(subEnd) : null;
+  const elapsed = subStart ? daysElapsed(subStart) : null;
+  const totalDays = planInfo.duration;
+  const progressPct = (subStart && subEnd && totalDays)
+    ? Math.min(100, Math.round(((elapsed ?? 0) / totalDays) * 100))
+    : 0;
+  const isActive = subEnd ? new Date(subEnd) > new Date() : plan === 'free';
+  const daysToExam = localExamDate ? daysRemaining(localExamDate) : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 pb-12">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-100 sticky top-0 z-40">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
-          <Link href="/dashboard" className="text-slate-400 hover:text-indigo-600 transition-colors text-sm">← Dashboard</Link>
-          <span className="text-slate-200">|</span>
-          <h1 className="font-black text-slate-800 text-base">Paramètres du profil</h1>
-          {saving && <Spinner size={16} />}
-          {saved && <span className="text-emerald-500 text-xs font-bold animate-fade-in">✓ Sauvegardé</span>}
-        </div>
-      </div>
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 space-y-4">
+      {/* ══════════════════════════════════════════════════════════
+          NAVIGATION PRINCIPALE
+      ══════════════════════════════════════════════════════════ */}
+      <header className="bg-white border-b border-slate-100 sticky top-0 z-50 shadow-sm">
+        {/* Barre du haut */}
+        <div className="border-b border-slate-100">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+            <Link href="/" className="flex items-center gap-2 font-black text-lg flex-shrink-0">
+              <span className="text-red-600 text-xl">🍁</span>
+              <span className="text-slate-900 hidden sm:block">RéussirTCF</span>
+            </Link>
 
-        {/* Infos compte */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-4">
-          <img src={user?.imageUrl || `https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${user?.id}&backgroundColor=b6e3f4`}
-            className="w-14 h-14 rounded-full border-2 border-indigo-100" alt="Avatar" />
-          <div>
-            <div className="font-black text-slate-800">{user?.fullName || user?.firstName || 'Utilisateur'}</div>
-            <div className="text-sm text-slate-500">{user?.primaryEmailAddress?.emailAddress}</div>
-            <div className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 text-xs font-bold px-2 py-0.5 rounded-full mt-1 capitalize">
-              {meta.role === 'apprenant' ? '🎓 Apprenant(e)' : meta.role === 'professeur' ? '👨‍🏫 Professeur(e)' : meta.role ?? '?'}
-            </div>
-          </div>
-        </motion.div>
+            <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-500">
+              <Link href="/formation" className="hover:text-slate-800 transition-colors uppercase tracking-wide text-xs">Formations</Link>
+              <Link href="/pricing" className="hover:text-slate-800 transition-colors uppercase tracking-wide text-xs">Tarifs</Link>
+              <Link href="/legal/contact" className="hover:text-slate-800 transition-colors uppercase tracking-wide text-xs">Contactez-nous</Link>
+            </nav>
 
-        {/* Objectif actuel */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-          className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-50">
-            <div>
-              <div className="font-black text-slate-800 text-sm">Ton objectif TCF</div>
-              <div className="text-xs text-slate-400 mt-0.5">
-                {currentGoal ? <span className="flex items-center gap-1">{currentGoal.icon} {currentGoal.label}</span> : 'Non défini'}
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-2">
+                <img
+                  src={user?.imageUrl || `https://api.dicebear.com/9.x/personas/svg?seed=${user?.id}`}
+                  className="w-8 h-8 rounded-full border border-slate-200"
+                  alt="Avatar"
+                />
+                <span className="text-sm font-semibold text-slate-700 max-w-[120px] truncate">
+                  {user?.firstName ?? 'Compte'}
+                </span>
               </div>
-            </div>
-            <button onClick={() => setSection(section === 'goal' ? null : 'goal')}
-              className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
-              {section === 'goal' ? 'Annuler' : 'Modifier'}
-            </button>
-          </div>
-
-          <AnimatePresence>
-            {section === 'goal' && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden">
-                <div className="p-4 space-y-2">
-                  {GOALS.map(g => (
-                    <button key={g.key} onClick={() => handleGoalSave(g.key)}
-                      className={`flex items-center gap-3 w-full text-left ${g.bg} border-2 rounded-xl px-4 py-3 transition-all
-                        ${goal === g.key ? g.border + ' shadow-sm' : 'border-transparent hover:border-slate-200'}`}>
-                      <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${g.color} flex items-center justify-center text-base shadow flex-shrink-0`}>
-                        {g.icon}
-                      </div>
-                      <div className="flex-1 text-left">
-                        <div className="font-bold text-slate-800 text-sm">{g.label}</div>
-                        <div className="text-xs text-slate-500">{g.sub}</div>
-                      </div>
-                      {goal === g.key && <span className="text-emerald-500 font-black text-sm">✓</span>}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* Programme (seulement si immigration) */}
-        {goal === 'immigration' && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
-            className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-50">
-              <div>
-                <div className="font-black text-slate-800 text-sm">Programme d'immigration</div>
-                <div className="text-xs text-slate-400 mt-0.5">
-                  {currentProgram ? <span className="flex items-center gap-1">{currentProgram.icon} {currentProgram.label}</span> : 'Non défini'}
-                </div>
-              </div>
-              <button onClick={() => setSection(section === 'program' ? null : 'program')}
-                className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
-                {section === 'program' ? 'Annuler' : 'Modifier'}
+              <button
+                onClick={() => { logout(); router.push('/'); }}
+                className="text-xs text-slate-400 hover:text-red-500 transition-colors font-medium hidden sm:block">
+                Déconnexion
+              </button>
+              <button
+                onClick={() => setMobileNavOpen(v => !v)}
+                className="md:hidden text-slate-500 hover:text-slate-800 p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+                {mobileNavOpen ? '✕' : '☰'}
               </button>
             </div>
+          </div>
+        </div>
 
-            <AnimatePresence>
-              {section === 'program' && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden">
-                  <div className="p-4 space-y-2">
-                    {Object.entries(PROGRAMS).map(([key, prog]) => (
-                      <button key={key} onClick={() => handleProgramSave(key)}
-                        className={`flex items-center gap-3 w-full text-left bg-slate-50 border-2 rounded-xl px-4 py-3 transition-all
-                          ${program === key ? 'border-indigo-300 bg-indigo-50' : 'border-transparent hover:border-slate-200'}`}>
-                        <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${prog.color} flex items-center justify-center text-base shadow flex-shrink-0`}>
-                          {prog.icon}
-                        </div>
-                        <div className="flex-1 text-left">
-                          <div className="font-bold text-slate-800 text-sm">{prog.label}</div>
-                          {prog.nclcMin && <div className="text-xs text-slate-500">NCLC {prog.nclcMin} minimum</div>}
-                        </div>
-                        {program === key && <span className="text-emerald-500 font-black text-sm">✓</span>}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
+        {/* Barre des sections */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-2">
+            <Link href="/dashboard"
+              className="flex-shrink-0 text-xs font-semibold text-slate-600 hover:text-red-600 px-3 py-1.5 rounded-full hover:bg-red-50 transition-colors">
+              Accueil
+            </Link>
+            <span className="text-slate-200 flex-shrink-0">|</span>
+            {NAV_SECTIONS.map(s => (
+              <Link key={s.code} href={`/practice/${s.code}`}
+                className="flex-shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-full hover:bg-slate-100 transition-colors whitespace-nowrap">
+                {s.label}
+              </Link>
+            ))}
+            <span className="text-slate-200 flex-shrink-0">|</span>
+            <Link href="/settings"
+              className="flex-shrink-0 text-xs font-bold text-red-600 px-3 py-1.5 rounded-full bg-red-50 border border-red-100 whitespace-nowrap">
+              Mon compte
+            </Link>
+          </div>
+        </div>
+
+        {/* Menu mobile */}
+        <AnimatePresence>
+          {mobileNavOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="md:hidden border-t border-slate-100 bg-white overflow-hidden">
+              <div className="px-4 py-3 space-y-1">
+                <Link href="/dashboard" onClick={() => setMobileNavOpen(false)} className="block text-sm font-semibold text-slate-700 py-2 px-3 rounded-xl hover:bg-slate-50">🏠 Accueil</Link>
+                {NAV_SECTIONS.map(s => (
+                  <Link key={s.code} href={`/practice/${s.code}`} onClick={() => setMobileNavOpen(false)}
+                    className="block text-sm font-semibold text-slate-700 py-2 px-3 rounded-xl hover:bg-slate-50">
+                    {SECTION_META[s.code].icon} {s.label}
+                  </Link>
+                ))}
+                <button onClick={() => { logout(); router.push('/'); }} className="w-full text-left text-sm font-semibold text-red-500 py-2 px-3 rounded-xl hover:bg-red-50">
+                  ↪ Déconnexion
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
+
+      {/* ══════════════════════════════════════════════════════════
+          CONTENU
+      ══════════════════════════════════════════════════════════ */}
+      <main className="flex-1">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+
+          {/* En-tête de page */}
+          <div className="flex items-center gap-3 mb-1">
+            <Link href="/dashboard" className="text-slate-400 hover:text-red-600 transition-colors text-sm flex items-center gap-1 font-medium">
+              ← Retour
+            </Link>
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900">Mon Compte</h1>
+            <p className="text-slate-500 text-sm mt-0.5">Gérez votre abonnement et vos accès</p>
+          </div>
+
+          {/* ── Actions rapides ─────────────────────────────── */}
+          <div>
+            <h2 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Actions rapides</h2>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                {
+                  icon: '👤', label: 'Mon profil', sub: 'Modifier mes informations',
+                  action: () => window.open('https://accounts.clerk.com/user', '_blank'),
+                },
+                {
+                  icon: '🔒', label: 'Sécurité', sub: 'Changer mon mot de passe',
+                  action: () => window.open('https://accounts.clerk.com/user/security', '_blank'),
+                },
+                {
+                  icon: '💬', label: 'Support', sub: 'Nous contacter',
+                  action: () => window.open('mailto:contact@reussirtcf.ca', '_blank'),
+                },
+              ].map((item, i) => (
+                <motion.button key={i} whileHover={{ y: -2 }} onClick={item.action}
+                  className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center hover:shadow-md hover:border-red-100 transition-all">
+                  <div className="text-2xl mb-1.5">{item.icon}</div>
+                  <div className="text-xs font-black text-slate-800 leading-tight">{item.label}</div>
+                  <div className="text-xs text-slate-400 mt-0.5 leading-tight">{item.sub}</div>
+                </motion.button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Mon abonnement ──────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+            className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
+              <h2 className="text-sm font-black text-slate-800">Mon abonnement</h2>
+              {plan === 'free' && (
+                <Link href="/pricing"
+                  className="text-xs font-black bg-gradient-to-r from-red-600 to-rose-500 text-white px-3 py-1.5 rounded-xl shadow hover:shadow-md transition-all">
+                  Passer Premium →
+                </Link>
               )}
-            </AnimatePresence>
-          </motion.div>
-        )}
+            </div>
 
-        {/* Scores cibles (résumé) */}
-        {(currentProgram?.scores || goal === 'citizenship') && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="bg-slate-900 rounded-2xl p-5 text-white">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Scores TCF cibles actuels</div>
-            <div className="grid grid-cols-2 gap-3">
-              {(['CO', 'CE', 'EE', 'EO'] as SectionCode[]).map(code => {
-                const scores = currentProgram?.scores ?? {
-                  CO: { min: 331, max: 699, unit: '/699', nclc: 4 },
-                  CE: null, EE: null,
-                  EO: { min: 4, max: 20, unit: '/20', nclc: 4 },
-                } as Record<SectionCode, ScoreTarget | null>;
-                const t = scores[code];
-                return (
-                  <div key={code} className={`rounded-xl p-3 ${t ? 'bg-white/10' : 'bg-white/5 opacity-40'}`}>
-                    <div className="text-xs font-black text-white">{code}</div>
-                    {t ? (
-                      <>
-                        <div className="text-lg font-black text-indigo-300">{t.min}<span className="text-xs text-slate-400 font-normal">{t.unit}</span></div>
-                        <div className="text-xs text-slate-400">NCLC {t.nclc}</div>
-                      </>
-                    ) : (
-                      <div className="text-xs text-slate-500 mt-1">Non requis</div>
-                    )}
+            <div className="p-5 space-y-4">
+              {/* Plan + statut */}
+              <div className="flex items-center gap-3">
+                <div className={`px-4 py-1.5 rounded-full bg-gradient-to-r ${planInfo.gradient} text-white text-sm font-black shadow`}>
+                  {planInfo.badge}
+                </div>
+                <span className={`text-xs font-bold px-3 py-1 rounded-full ${isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
+                  {isActive ? '● Actif' : '● Inactif'}
+                </span>
+              </div>
+
+              {/* Grid dates (4 cellules) */}
+              {plan !== 'free' && subStart && subEnd ? (
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { label: 'Début', value: formatDate(subStart) },
+                    { label: 'Fin', value: formatDate(subEnd) },
+                    { label: 'Restant', value: remaining !== null ? `${remaining}j` : '—' },
+                    { label: 'Durée', value: totalDays ? `${totalDays} jours` : '—' },
+                  ].map(item => (
+                    <div key={item.label} className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                      <div className="text-xs text-slate-400 mb-0.5">{item.label}</div>
+                      <div className="font-black text-slate-800 text-xs sm:text-sm">{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : plan === 'free' ? (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-600">
+                  <span className="font-bold">Plan gratuit</span> — Accès limité. Passe à Silver ou Gold pour un accès illimité.
+                </div>
+              ) : null}
+
+              {/* Barre de progression */}
+              {plan !== 'free' && totalDays && (
+                <div>
+                  <div className="flex justify-between text-xs text-slate-400 mb-1.5">
+                    <span>Progression</span>
+                    <span className="font-bold text-slate-600">{progressPct}%</span>
                   </div>
+                  <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progressPct}%` }}
+                      transition={{ duration: 0.8, delay: 0.3 }}
+                      className={`h-full rounded-full bg-gradient-to-r ${planInfo.gradient}`}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Date d'examen */}
+              <div className="border-t border-slate-50 pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <div className="text-sm font-bold text-slate-700">Date d&apos;examen TCF</div>
+                    <div className="text-xs text-slate-400">
+                      {localExamDate
+                        ? new Date(localExamDate).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })
+                        : 'Non définie'}
+                    </div>
+                  </div>
+                  {daysToExam !== null && daysToExam <= 30 && (
+                    <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-full">
+                      ⚠️ {daysToExam}j
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={localExamDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={e => setLocalExamDate(e.target.value)}
+                    className="flex-1 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition-all"
+                  />
+                  <button
+                    onClick={handleSaveExamDate}
+                    disabled={!localExamDate || saving}
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-colors disabled:opacity-40 flex items-center gap-1.5 whitespace-nowrap">
+                    {saving ? <Spinner size={14} color="#fff" /> : saved ? '✓ Sauvé' : 'Sauver'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ── Vos accès inclus ────────────────────────────── */}
+          <div>
+            <h2 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Vos accès inclus</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(['EE', 'EO', 'CE', 'CO'] as SectionCode[]).map((code, i) => {
+                const sm = SECTION_META[code];
+                const access = planInfo.access[code];
+                const isIllimite = access.type === 'illimite';
+
+                return (
+                  <motion.div
+                    key={code}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 + i * 0.04 }}
+                    className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:shadow-md transition-all">
+
+                    {/* En-tête section */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${sm.iconBg} flex items-center justify-center text-lg shadow flex-shrink-0`}>
+                        {sm.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-black text-slate-800 text-sm leading-tight">{sm.label}</div>
+                        <div className="text-xs text-slate-500">{access.label}</div>
+                      </div>
+                    </div>
+
+                    {/* Contenu accès */}
+                    {isIllimite ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                          <span className="text-xs font-bold text-emerald-600">Accès illimité</span>
+                        </div>
+                        {access.seriesCount ? (
+                          <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-between border border-slate-100">
+                            <span className="text-xs text-slate-500">{access.subLabel}</span>
+                            <span className="font-black text-slate-800 text-sm">{access.seriesCount}<span className="text-xs text-slate-400 font-normal ml-1">séries</span></span>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-slate-500">{access.subLabel}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 bg-amber-400 rounded-full" />
+                          <span className="text-xs font-bold text-amber-600">Accès limité</span>
+                        </div>
+                        {access.count !== null ? (
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            {[
+                              { label: 'Disponibles', value: access.count, color: 'text-slate-800' },
+                              { label: 'Utilisés',    value: 0,            color: 'text-slate-400' },
+                              { label: 'Restants',    value: access.count, color: 'text-red-600' },
+                            ].map(item => (
+                              <div key={item.label} className="bg-slate-50 rounded-xl py-2.5 border border-slate-100">
+                                <div className={`text-lg font-black ${item.color}`}>{item.value}</div>
+                                <div className="text-xs text-slate-400">{item.label}</div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : access.seriesCount !== null ? (
+                          <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-between border border-slate-100">
+                            <span className="text-xs text-slate-500">{access.subLabel}</span>
+                            <span className="font-black text-slate-800 text-sm">{access.seriesCount}<span className="text-xs text-slate-400 font-normal ml-1">séries</span></span>
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {/* Bouton pratiquer */}
+                    <Link href={sm.href}
+                      className={`mt-4 block w-full text-center text-xs font-bold py-2.5 rounded-xl transition-all
+                        ${isIllimite
+                          ? `bg-gradient-to-r ${sm.gradient} text-white shadow hover:shadow-md`
+                          : 'bg-slate-50 text-slate-600 hover:bg-red-50 hover:text-red-700 border border-slate-200'}`}>
+                      Pratiquer →
+                    </Link>
+                  </motion.div>
                 );
               })}
             </div>
-          </motion.div>
-        )}
+          </div>
 
-        {/* Danger zone */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-          className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-3">
-          <div className="text-sm font-black text-slate-700">Autres actions</div>
-          <button
-            onClick={() => { setSection(null); router.push('/dashboard'); }}
-            className="w-full text-left text-sm text-slate-600 hover:text-indigo-600 flex items-center gap-2 py-2 transition-colors">
-            📊 Retour au dashboard
-          </button>
-          <button
-            onClick={async () => {
-              if (!confirm('Réinitialiser ton profil ? Tu devras refaire la configuration.')) return;
-              await user?.update({ unsafeMetadata: { role: null, goal: null, program: null, completedOnboarding: false } });
-              router.push('/onboarding');
-            }}
-            className="w-full text-left text-sm text-red-400 hover:text-red-600 flex items-center gap-2 py-2 transition-colors">
-            🔄 Réinitialiser mon profil
-          </button>
-        </motion.div>
+          {/* ── Plan gratuit : upgrade CTA ───────────────────── */}
+          {plan === 'free' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+              className="bg-gradient-to-r from-red-600 to-rose-600 rounded-2xl p-5 text-white text-center shadow-lg">
+              <div className="text-lg font-black mb-1">Passe à Silver ou Gold</div>
+              <div className="text-sm text-white/80 mb-4">Accès illimité à toutes les sections + corrections IA</div>
+              <Link href="/pricing"
+                className="inline-block bg-white text-red-600 font-black px-6 py-2.5 rounded-xl shadow hover:shadow-md transition-all text-sm">
+                Voir les tarifs →
+              </Link>
+            </motion.div>
+          )}
 
-      </div>
+        </div>
+      </main>
+
+      {/* ══════════════════════════════════════════════════════════
+          FOOTER
+      ══════════════════════════════════════════════════════════ */}
+      <Footer />
     </div>
   );
 }

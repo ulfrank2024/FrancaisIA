@@ -11,19 +11,34 @@ async function getClerkToken(): Promise<string | null> {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
+async function request<T>(path: string, options: RequestInit = {}, token?: string, timeoutMs = 30_000): Promise<T> {
   const authToken = token ?? await getClerkToken();
-  const res = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      ...options.headers,
-    },
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Erreur réseau');
-  return data;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...options.headers,
+      },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur réseau');
+    return data;
+  } catch (e: unknown) {
+    if (e instanceof Error && e.name === 'AbortError') {
+      throw new Error('La requête a pris trop longtemps — réessaie.');
+    }
+    if (e instanceof TypeError && e.message.includes('socket')) {
+      throw new Error('Connexion interrompue — vérifie ta connexion et réessaie.');
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export const api = {
@@ -38,12 +53,16 @@ export const api = {
     },
     mockExam: (token?: string) =>
       request<{ exam: Record<string, Question[]>; totalQuestions: number }>('/api/questions/mock-exam', {}, token),
+    tasks: (section: string, token?: string) =>
+      request<{ tasks: Record<string, { id: string; taskNumber: number; question: string; theme: string | null; timeLimitMin: number | null; tags: string[]; level: string }[]>; total: number }>(`/api/questions/tasks?section=${section}`, {}, token),
   },
   ai: {
     correct: (body: { text: string; section: string; prompt?: string }, token?: string) =>
-      request<CorrectionResult>('/api/ai/correct', { method: 'POST', body: JSON.stringify(body) }, token),
+      request<CorrectionResult>('/api/ai/correct', { method: 'POST', body: JSON.stringify(body) }, token, 60_000),
     explain: (topic: string, token?: string) =>
-      request<{ explanation: string }>('/api/ai/explain', { method: 'POST', body: JSON.stringify({ topic }) }, token),
+      request<{ explanation: string }>('/api/ai/explain', { method: 'POST', body: JSON.stringify({ topic }) }, token, 45_000),
+    eoCorrection: (body: { taskNumber: number; question: string; theme?: string | null }, token?: string) =>
+      request<{ correction: string; taskNumber: number }>('/api/ai/eo-correction', { method: 'POST', body: JSON.stringify(body) }, token, 60_000),
     chatStream: async (messages: ChatMessage[], onChunk: (text: string) => void, token?: string) => {
       const authToken = token ?? await getClerkToken();
       const res = await fetch(`${BASE}/api/ai/chat`, {
@@ -104,6 +123,24 @@ export const api = {
     correct: (id: string, body: CorrectionInput, token?: string) =>
       request<ExerciseSubmission>(`/api/classes/submissions/${id}/correct`, { method: 'PATCH', body: JSON.stringify(body) }, token),
   },
+  lessons: {
+    create: (body: { professorId: string; title: string; section: string; content: string }, token?: string) =>
+      request<{ lesson: Lesson }>('/api/lessons', { method: 'POST', body: JSON.stringify(body) }, token),
+    listByProf: (professorId: string, token?: string) =>
+      request<{ lessons: LessonWithAssignments[] }>(`/api/lessons/prof/${professorId}`, {}, token),
+    listByStudent: (studentId: string, token?: string) =>
+      request<{ lessons: LessonAssigned[] }>(`/api/lessons/student/${studentId}`, {}, token),
+    get: (id: string, token?: string) =>
+      request<{ lesson: LessonWithAssignments }>(`/api/lessons/${id}`, {}, token),
+    update: (id: string, body: Partial<{ title: string; section: string; content: string }>, token?: string) =>
+      request<{ lesson: Lesson }>(`/api/lessons/${id}`, { method: 'PATCH', body: JSON.stringify(body) }, token),
+    delete: (id: string, token?: string) =>
+      request<{ ok: boolean }>(`/api/lessons/${id}`, { method: 'DELETE' }, token),
+    assign: (id: string, assignments: { studentId: string; classId: string }[], token?: string) =>
+      request<{ lesson: LessonWithAssignments }>(`/api/lessons/${id}/assign`, { method: 'POST', body: JSON.stringify({ assignments }) }, token),
+    unassign: (id: string, studentId: string, token?: string) =>
+      request<{ ok: boolean }>(`/api/lessons/${id}/assign/${studentId}`, { method: 'DELETE' }, token),
+  },
 };
 
 export type Question = {
@@ -113,6 +150,7 @@ export type Question = {
   theme?: string; imageUrl?: string; timeLimitMin?: number;
   taskNumber?: number; sessionGroup?: string;
   wordCountMin?: number; wordCountMax?: number;
+  orderNumber?: number | null; points?: number | null;
 };
 export type EpreuvSession = {
   group: string; level: string; theme: string;
@@ -167,4 +205,14 @@ export type SubmissionInput = {
 export type CorrectionInput = {
   score: number; feedback: string;
   strengths: string[]; errors: string[]; correctedBy: string;
+};
+export type Lesson = {
+  id: string; professorId: string; title: string; section: string;
+  content: string; createdAt: string; updatedAt: string;
+};
+export type LessonWithAssignments = Lesson & {
+  assignments: { studentId: string; classId: string; assignedAt: string }[];
+};
+export type LessonAssigned = Lesson & {
+  assignedAt: string; classId: string;
 };

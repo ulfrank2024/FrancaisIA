@@ -1,6 +1,6 @@
 import LegalLayout from '../../../components/LegalLayout';
 
-export const metadata = { title: 'Politique de remboursement — FrançaisIA' };
+export const metadata = { title: 'Politique de remboursement — RéussirTCF' };
 
 export default function RefundPage() {
   return (
@@ -23,7 +23,7 @@ export default function RefundPage() {
         </div>
 
         <Section title="1. Champ d'application">
-          <p>Cette politique s'applique à tous les abonnements payants de FrançaisIA (plan Pro mensuel et plan Annuel). Elle ne s'applique pas au plan gratuit (qui ne génère aucun frais).</p>
+          <p>Cette politique s'applique à tous les abonnements payants de RéussirTCF (plan Pro mensuel et plan Annuel). Elle ne s'applique pas au plan gratuit (qui ne génère aucun frais).</p>
         </Section>
 
         <Section title="2. Garantie 14 jours — Premier abonnement">
@@ -113,7 +113,7 @@ export default function RefundPage() {
         <Section title="7. Comment demander un remboursement">
           <div className="space-y-3">
             {[
-              { step: '1', text: 'Envoyez un email à refund@francaisIA.ca depuis l\'adresse de votre compte' },
+              { step: '1', text: 'Envoyez un email à refund@reussirtcf.ca depuis l\'adresse de votre compte' },
               { step: '2', text: 'Indiquez : votre nom, la date de paiement, et votre identifiant de transaction' },
               { step: '3', text: 'Notre équipe vous répond sous 24h ouvrables' },
               { step: '4', text: 'Le remboursement est initié après validation (délai bancaire selon votre méthode de paiement)' },
@@ -128,8 +128,8 @@ export default function RefundPage() {
 
         <div className="bg-slate-900 text-white rounded-2xl p-6 text-center">
           <p className="font-bold mb-1">Demande de remboursement</p>
-          <a href="mailto:refund@francaisIA.ca" className="text-emerald-400 hover:text-emerald-300 transition-colors font-bold text-lg">
-            refund@francaisIA.ca
+          <a href="mailto:refund@reussirtcf.ca" className="text-emerald-400 hover:text-emerald-300 transition-colors font-bold text-lg">
+            refund@reussirtcf.ca
           </a>
           <p className="text-slate-400 text-xs mt-2">Réponse sous 24h ouvrables · Remboursement garanti 14 jours</p>
         </div>

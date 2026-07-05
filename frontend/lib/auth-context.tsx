@@ -26,10 +26,21 @@ export function useAuth() {
     };
   }, [user?.id, user?.primaryEmailAddress?.emailAddress, user?.fullName, user?.firstName, user?.imageUrl]);
 
+  // Plan depuis Clerk unsafeMetadata — mis à jour par le webhook Stripe
+  // Si subscriptionEnd est dépassé, on retombe sur free côté client aussi
+  const userPlan = useMemo<string>(() => {
+    if (!user) return 'free';
+    const plan   = (user.unsafeMetadata?.plan as string) ?? 'free';
+    if (plan === 'free') return 'free';
+    const subEnd = user.unsafeMetadata?.subscriptionEnd as string | undefined;
+    if (subEnd && new Date(subEnd) < new Date()) return 'free';
+    return plan;
+  }, [user?.unsafeMetadata]);
+
   async function logout() {
     await signOut();
     router.push('/');
   }
 
-  return { user: appUser, loading: !isLoaded, logout, getToken };
+  return { user: appUser, loading: !isLoaded, logout, getToken, userPlan };
 }

@@ -20,27 +20,48 @@ services:
     ports:
       - "4001:4001"
     networks: [francaisIA]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4001/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   content-service:
     build:
       context: .
       dockerfile: services/content-service/Dockerfile
     env_file: .env
+    environment:
+      AI_URL: http://ai-service:4003
     ports:
       - "4002:4002"
     networks: [francaisIA]
+    depends_on:
+      ai-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4002/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   ai-service:
     build: ./services/ai-service
     env_file: .env
-    environment:
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
     ports:
       - "4003:4003"
     networks: [francaisIA]
     depends_on:
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4003/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   progress-service:
     build:
@@ -50,6 +71,12 @@ services:
     ports:
       - "4004:4004"
     networks: [francaisIA]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4004/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   # ─── API Gateway ─────────────────────────────────────────────────
   api-gateway:
@@ -59,14 +86,33 @@ services:
       - "4000:4000"
     networks: [francaisIA]
     depends_on:
-      - auth-service
-      - content-service
-      - ai-service
-      - progress-service
+      auth-service:
+        condition: service_healthy
+      content-service:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+      progress-service:
+        condition: service_healthy
 
   # ─── Frontend ────────────────────────────────────────────────────
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_CLERK_SIGN_IN_URL: ${NEXT_PUBLIC_CLERK_SIGN_IN_URL}
+        NEXT_PUBLIC_CLERK_SIGN_UP_URL: ${NEXT_PUBLIC_CLERK_SIGN_UP_URL}
+        NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: ${NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL}
+        NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: ${NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL}
+        NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL: ${NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL:-/dashboard}
+        NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL: ${NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL:-/redirect}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_ADMIN_USER_ID: ${NEXT_PUBLIC_ADMIN_USER_ID}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_STRIPE_BRONZE_URL: ${NEXT_PUBLIC_STRIPE_BRONZE_URL:-}
+        NEXT_PUBLIC_STRIPE_SILVER_URL: ${NEXT_PUBLIC_STRIPE_SILVER_URL:-}
+        NEXT_PUBLIC_STRIPE_GOLD_URL: ${NEXT_PUBLIC_STRIPE_GOLD_URL:-}
     env_file: .env
     ports:
       - "3001:3000"

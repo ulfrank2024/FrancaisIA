@@ -22,6 +22,9 @@ const resultSchema = z.object({
   durationSeconds: z.number().int().optional(),
 });
 
+// Plans payants reconnus
+const PAID_PLANS = ['bronze', 'silver', 'gold', 'pro', 'annual'];
+
 // POST /progress/results
 router.post('/results', async (req: Request, res: Response): Promise<void> => {
   const parsed = resultSchema.safeParse(req.body);
@@ -30,6 +33,40 @@ router.post('/results', async (req: Request, res: Response): Promise<void> => {
     return;
   }
   const { userId, section, score, total, correct, details, durationSeconds } = parsed.data;
+
+  // ── Vérification des limites de sessions selon le plan ──────────
+  const userPlan = (req.headers['x-user-plan'] as string) || 'free';
+
+  if (!PAID_PLANS.includes(userPlan)) {
+    // Gratuit : max 3 sessions par section
+    const count = await prisma.result.count({ where: { userId, section } });
+    if (count >= 3) {
+      res.status(403).json({
+        error: `Limite de 3 sessions d'essai atteinte pour la section ${section}. Passez à un plan payant pour continuer.`,
+        code: 'FREE_LIMIT_REACHED',
+        section,
+      });
+      return;
+    }
+  } else if (userPlan === 'bronze') {
+    // Bronze : max 10 sessions toutes sections confondues
+    const count = await prisma.result.count({ where: { userId } });
+    if (count >= 10) {
+      res.status(403).json({
+        error: 'Limite de 10 sessions atteinte avec le plan Bronze. Passez à Silver pour des sessions illimitées.',
+        code: 'BRONZE_LIMIT_REACHED',
+      });
+      return;
+    }
+  }
+  // silver | gold | pro | annual : illimité — pas de vérification
+
+  // Garantit que l'utilisateur existe même sans webhook Clerk configuré
+  await prisma.user.upsert({
+    where: { id: userId },
+    create: { id: userId, email: '', fullName: 'Apprenant' },
+    update: {},
+  });
 
   const result = await prisma.result.create({
     data: { userId, section, score, total, correct, details, durationS: durationSeconds },
@@ -79,16 +116,18 @@ router.get('/history/:userId', async (req: Request, res: Response): Promise<void
 
 // GET /progress/stats — public, pas d'auth
 router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
-  const [count, agg, uniq] = await Promise.all([
+  const [count, agg, uniq, passed] = await Promise.all([
     prisma.result.count(),
     prisma.result.aggregate({ _avg: { score: true } }),
     prisma.result.findMany({ distinct: ['userId'], select: { userId: true } }),
+    prisma.result.count({ where: { score: { gte: 60 } } }),
   ]);
+  const successRate = count > 0 ? Math.round((passed / count) * 100) : 0;
   res.json({
-    totalUsers: uniq.length + 1847,
-    totalSessions: count + 12483,
-    averageScore: Math.round(agg._avg.score ?? 74),
-    successRate: 87,
+    totalUsers: uniq.length,
+    totalSessions: count,
+    averageScore: Math.round(agg._avg.score ?? 0),
+    successRate,
   });
 });
 

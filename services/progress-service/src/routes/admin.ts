@@ -28,6 +28,9 @@ router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
     approvedProfs,
     totalClasses,
     subscriptions,
+    recentSessions,
+    sessionsBySection,
+    avgScores,
   ] = await Promise.all([
     prisma.result.count(),
     prisma.result.findMany({ distinct: ['userId'], select: { userId: true } }),
@@ -35,6 +38,9 @@ router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
     prisma.professorRequest.count({ where: { status: 'approved' } }),
     prisma.class.count(),
     prisma.subscription.groupBy({ by: ['plan'], _count: true }),
+    prisma.result.findMany({ orderBy: { createdAt: 'desc' }, take: 10, select: { userId: true, section: true, score: true, correct: true, total: true, durationS: true, createdAt: true } }),
+    prisma.result.groupBy({ by: ['section'], _count: true }),
+    prisma.result.groupBy({ by: ['section'], _avg: { score: true } }),
   ]);
 
   res.json({
@@ -44,6 +50,9 @@ router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
     approvedProfessors: approvedProfs,
     totalClasses,
     subscriptions: Object.fromEntries(subscriptions.map((s: { plan: string; _count: number }) => [s.plan, s._count])),
+    recentSessions,
+    sessionsBySection: Object.fromEntries(sessionsBySection.map((s: { section: string; _count: number }) => [s.section, s._count])),
+    avgScoresBySection: Object.fromEntries(avgScores.map((s: { section: string; _avg: { score: number | null } }) => [s.section, Math.round(s._avg.score ?? 0)])),
   });
 });
 
@@ -162,7 +171,7 @@ router.get('/subscriptions', async (_req: Request, res: Response): Promise<void>
 router.post('/subscriptions', async (req: Request, res: Response): Promise<void> => {
   const schema = z.object({
     userId: z.string(), email: z.string().email(),
-    plan: z.enum(['free', 'pro', 'annual']),
+    plan: z.enum(['free', 'bronze', 'silver', 'gold', 'pro', 'annual']),
     expiresAt: z.string().optional(),
   });
   const parsed = schema.safeParse(req.body);
@@ -174,7 +183,36 @@ router.post('/subscriptions', async (req: Request, res: Response): Promise<void>
     create: { userId, email, plan, status: 'active', expiresAt: expiresAt ? new Date(expiresAt) : undefined },
     update: { plan, status: 'active', expiresAt: expiresAt ? new Date(expiresAt) : null },
   });
+
+  // Synchroniser le plan dans les metadata Clerk pour que le client voit le changement immédiatement
+  try {
+    const clerkUser = await clerk.users.getUser(userId);
+    await clerk.users.updateUser(userId, {
+      unsafeMetadata: { ...clerkUser.unsafeMetadata, plan },
+    });
+  } catch (e) {
+    console.error('[subscriptions] Clerk metadata sync failed:', e);
+  }
+
   res.json(sub);
+});
+
+// DELETE /admin/subscriptions/:userId — révoquer l'accès
+router.delete('/subscriptions/:userId', async (req: Request, res: Response): Promise<void> => {
+  const { userId } = req.params;
+  await prisma.subscription.updateMany({
+    where: { userId },
+    data: { plan: 'free', status: 'cancelled' },
+  });
+  try {
+    const clerkUser = await clerk.users.getUser(userId);
+    await clerk.users.updateUser(userId, {
+      unsafeMetadata: { ...clerkUser.unsafeMetadata, plan: 'free' },
+    });
+  } catch (e) {
+    console.error('[subscriptions] Clerk revoke failed:', e);
+  }
+  res.json({ ok: true });
 });
 
 // ── Tous les utilisateurs (via Clerk) ─────────────────────────────
@@ -192,6 +230,107 @@ router.get('/users', async (_req: Request, res: Response): Promise<void> => {
       createdAt: u.createdAt,
       plan: subMap[u.id] ?? 'free',
     })),
+  });
+});
+
+// ── Sondages ──────────────────────────────────────────────────────
+router.get('/surveys', async (_req: Request, res: Response): Promise<void> => {
+  const [surveys, stats] = await Promise.all([
+    prisma.survey.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    }),
+    prisma.survey.groupBy({
+      by: ['section'],
+      _avg: { rating: true },
+      _count: true,
+    }),
+  ]);
+
+  const globalAvg = surveys.length
+    ? surveys.reduce((sum: number, x: { rating: number }) => sum + x.rating, 0) / surveys.length
+    : null;
+
+  const dist = [1, 2, 3, 4, 5].map(r => ({
+    rating: r,
+    count: surveys.filter((s: { rating: number }) => s.rating === r).length,
+  }));
+
+  res.json({ surveys, stats, globalAvg, dist, total: surveys.length });
+});
+
+// ── Flux d'utilisation ────────────────────────────────────────────
+router.get('/flux', async (req: Request, res: Response): Promise<void> => {
+  const days = Number((req as Request & { query: Record<string, string> }).query.days) || 30;
+  const since = new Date(Date.now() - days * 86_400_000);
+
+  const [
+    topPages,
+    topEvents,
+    dailyEvents,
+    sectionUsage,
+    totalEvents,
+    uniqueUsers,
+  ] = await Promise.all([
+    // Pages les plus visitées
+    prisma.pageEvent.groupBy({
+      by: ['page'],
+      _count: true,
+      where: { event: 'page_view', createdAt: { gte: since } },
+      orderBy: { _count: { page: 'desc' } },
+      take: 15,
+    }),
+    // Événements les plus fréquents
+    prisma.pageEvent.groupBy({
+      by: ['event'],
+      _count: true,
+      where: { createdAt: { gte: since } },
+      orderBy: { _count: { event: 'desc' } },
+      take: 10,
+    }),
+    // Événements par jour (30 derniers)
+    prisma.$queryRaw`
+      SELECT DATE("createdAt") as date, COUNT(*)::int as count
+      FROM "PageEvent"
+      WHERE "createdAt" >= ${since}
+      GROUP BY DATE("createdAt")
+      ORDER BY date ASC
+    `,
+    // Usage par section (sessions démarrées)
+    prisma.pageEvent.groupBy({
+      by: ['section'],
+      _count: true,
+      where: { event: 'session_start', section: { not: null }, createdAt: { gte: since } },
+      orderBy: { _count: { section: 'desc' } },
+    }),
+    // Total événements
+    prisma.pageEvent.count({ where: { createdAt: { gte: since } } }),
+    // Utilisateurs uniques actifs
+    prisma.pageEvent.findMany({
+      where: { userId: { not: null }, createdAt: { gte: since } },
+      select: { userId: true },
+      distinct: ['userId'],
+    }),
+  ]);
+
+  // Funnel de conversion depuis les résultats existants
+  const [totalSessions, totalCompleted] = await Promise.all([
+    prisma.pageEvent.count({ where: { event: 'session_start', createdAt: { gte: since } } }),
+    prisma.pageEvent.count({ where: { event: 'session_complete', createdAt: { gte: since } } }),
+  ]);
+
+  res.json({
+    topPages,
+    topEvents,
+    dailyEvents,
+    sectionUsage,
+    totalEvents,
+    uniqueUsers: uniqueUsers.length,
+    funnel: {
+      sessions_started: totalSessions,
+      sessions_completed: totalCompleted,
+      completion_rate: totalSessions > 0 ? Math.round((totalCompleted / totalSessions) * 100) : 0,
+    },
   });
 });
 

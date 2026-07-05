@@ -17,6 +17,19 @@ export default function RedirectPage() {
     if (!isLoaded) return;
     if (!user) { router.replace('/login'); return; }
 
+    // Vérification admin par ID
+    if (user.id === process.env.NEXT_PUBLIC_ADMIN_USER_ID) {
+      router.replace('/admin/dashboard');
+      return;
+    }
+
+    // Code de classe en attente → aller rejoindre la classe en priorité
+    const pendingCode = localStorage.getItem('reussirtcf_pending_join_code');
+    if (pendingCode) {
+      router.replace(`/join?code=${pendingCode}`);
+      return;
+    }
+
     const meta = (user.unsafeMetadata ?? {}) as Meta;
 
     if (!meta.completedOnboarding) {
@@ -31,16 +44,13 @@ export default function RedirectPage() {
       case 'pending_prof':
         router.replace('/pending-approval');
         break;
-      case 'admin':
-        router.replace('/admin/dashboard');
-        break;
       default:
         router.replace('/dashboard');
     }
   }, [isLoaded, user, router]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-indigo-50 to-cyan-50">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-red-50 to-slate-50">
       <Spinner size={40} />
       <p className="text-slate-500 text-sm">Chargement de ton espace...</p>
     </div>

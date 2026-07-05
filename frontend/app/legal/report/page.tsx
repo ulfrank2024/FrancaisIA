@@ -24,20 +24,41 @@ export default function ReportPage() {
   const [form, setForm] = useState({ type: '', severity: '', description: '', url: '', email: '', steps: '' });
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
   const [ticketId] = useState(`FIA-${Math.floor(Math.random() * 90000) + 10000}`);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSending(true);
-    await new Promise(r => setTimeout(r, 1400));
-    setSending(false);
-    setSent(true);
+    setError('');
+    try {
+      const categoryMap: Record<string, string> = {
+        bug: 'bug', question: 'contenu', payment: 'paiement', ai: 'contenu',
+        account: 'bug', accessibility: 'autre', other: 'autre',
+      };
+      const res = await fetch('/api/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category:    categoryMap[form.type] ?? 'autre',
+          description: `[${form.type}/${form.severity}] ${form.description}\n\nÉtapes: ${form.steps}`,
+          email:       form.email,
+          url:         form.url,
+        }),
+      });
+      if (!res.ok) throw new Error('Erreur serveur');
+      setSent(true);
+    } catch {
+      setError('Une erreur est survenue. Écrivez directement à urgent@reussirtcf.ca');
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
     <LegalLayout
       title="Signaler un problème"
-      subtitle="Aidez-nous à améliorer FrançaisIA — chaque rapport compte"
+      subtitle="Aidez-nous à améliorer RéussirTCF — chaque rapport compte"
       icon="🚨"
       lastUpdated="13 juin 2026"
     >
@@ -47,7 +68,7 @@ export default function ReportPage() {
           <span className="text-2xl flex-shrink-0">⚡</span>
           <div>
             <p className="font-bold text-amber-800 text-sm">Problème urgent ?</p>
-            <p className="text-amber-700 text-sm">Si votre problème est critique (service inutilisable, paiement erroné), contactez-nous directement sur <a href="mailto:urgent@francaisIA.ca" className="underline font-bold">urgent@francaisIA.ca</a> — réponse sous 4 heures.</p>
+            <p className="text-amber-700 text-sm">Si votre problème est critique (service inutilisable, paiement erroné), contactez-nous directement sur <a href="mailto:urgent@reussirtcf.ca" className="underline font-bold">urgent@reussirtcf.ca</a> — réponse sous 4 heures.</p>
           </div>
         </div>
 
@@ -181,7 +202,7 @@ export default function ReportPage() {
                     type="url"
                     value={form.url}
                     onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
-                    placeholder="https://francaisIA.ca/practice/CO"
+                    placeholder="https://reussirtcf.ca/practice/CO"
                     className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
                   />
                 </div>
@@ -201,6 +222,10 @@ export default function ReportPage() {
                   />
                 </div>
               </div>
+
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</p>
+              )}
 
               <motion.button
                 type="submit"

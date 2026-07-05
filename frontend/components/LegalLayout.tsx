@@ -13,15 +13,23 @@ interface LegalLayoutProps {
 export default function LegalLayout({ title, subtitle, icon, lastUpdated, children }: LegalLayoutProps) {
   return (
     <div className="min-h-screen bg-white">
+      {/* Bande drapeau */}
+      <div className="flex h-1.5 w-full">
+        <div className="w-1/4 bg-red-600" />
+        <div className="w-1/2 bg-white border-b border-slate-100" />
+        <div className="w-1/4 bg-red-600" />
+      </div>
+
       {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100">
-        <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
-          <Link href="/" className="text-xl font-black bg-gradient-to-r from-indigo-600 to-cyan-500 bg-clip-text text-transparent">
-            FrançaisIA
+      <nav className="bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm">
+        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 font-black text-lg text-slate-900">
+            <span className="text-red-600">🍁</span>
+            RéussirTCF
           </Link>
           <div className="flex items-center gap-4 text-sm">
-            <Link href="/login" className="text-slate-500 hover:text-indigo-600 transition-colors font-medium">Connexion</Link>
-            <Link href="/register" className="bg-gradient-to-r from-indigo-600 to-cyan-500 text-white font-bold px-4 py-2 rounded-full text-xs hover:opacity-90 transition-opacity">
+            <Link href="/login" className="text-slate-500 hover:text-red-600 transition-colors font-medium">Connexion</Link>
+            <Link href="/register" className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-full text-xs transition-colors">
               Commencer gratuitement
             </Link>
           </div>
@@ -29,7 +37,7 @@ export default function LegalLayout({ title, subtitle, icon, lastUpdated, childr
       </nav>
 
       {/* Hero */}
-      <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white py-16 px-6">
+      <div className="bg-gradient-to-br from-slate-900 to-red-950 text-white py-16 px-6">
         <motion.div
           className="max-w-3xl mx-auto text-center"
           initial={{ opacity: 0, y: 20 }}
@@ -48,7 +56,7 @@ export default function LegalLayout({ title, subtitle, icon, lastUpdated, childr
       {/* Breadcrumb */}
       <div className="bg-slate-50 border-b border-slate-100 px-6 py-3">
         <div className="max-w-3xl mx-auto flex items-center gap-2 text-xs text-slate-400">
-          <Link href="/" className="hover:text-indigo-600 transition-colors">Accueil</Link>
+          <Link href="/" className="hover:text-red-600 transition-colors">Accueil</Link>
           <span>›</span>
           <span className="text-slate-600">{title}</span>
         </div>
@@ -69,8 +77,8 @@ export default function LegalLayout({ title, subtitle, icon, lastUpdated, childr
       {/* Footer minimal */}
       <div className="bg-slate-950 text-slate-500 py-8 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
-          <Link href="/" className="font-black text-base bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-            FrançaisIA
+          <Link href="/" className="flex items-center gap-1.5 font-black text-base text-white">
+            <span className="text-red-500">🍁</span> RéussirTCF
           </Link>
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/legal/privacy" className="hover:text-white transition-colors">Confidentialité</Link>
@@ -79,7 +87,7 @@ export default function LegalLayout({ title, subtitle, icon, lastUpdated, childr
             <Link href="/legal/accessibility" className="hover:text-white transition-colors">Accessibilité</Link>
             <Link href="/legal/contact" className="hover:text-white transition-colors">Contact</Link>
           </div>
-          <span>© {new Date().getFullYear()} FrançaisIA Inc.</span>
+          <span>© {new Date().getFullYear()} RéussirTCF Inc.</span>
         </div>
       </div>
     </div>

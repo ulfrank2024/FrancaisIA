@@ -1,6 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -36,7 +36,9 @@ model Question {
   wordCountMin Int?     // EE: nombre de mots minimum attendu
   wordCountMax Int?     // EE: nombre de mots maximum attendu
   timeLimitMin Int?     // durée suggérée en minutes
-  imageUrl     String?  // EO: URL image à décrire (Unsplash)
+  imageUrl     String?  // CO Q1-2: image affichée; EO: image à décrire
+  points       Int?     // CO: points TCF par question (3/9/15/21/26/33)
+  orderNumber  Int?     // CO: numéro de passage (1-39) pour tri garanti
   tags         String[] @default([])
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
@@ -168,6 +170,9 @@ model Subscription {
 
 enum SubscriptionPlan {
   free
+  bronze
+  silver
+  gold
   pro
   annual
 }
@@ -176,4 +181,68 @@ enum SubStatus {
   active
   cancelled
   expired
+}
+
+model Lesson {
+  id          String             @id @default(cuid())
+  professorId String
+  title       String
+  section     String
+  content     String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  assignments LessonAssignment[]
+}
+
+model LessonAssignment {
+  id         String   @id @default(cuid())
+  lessonId   String
+  studentId  String
+  classId    String
+  assignedAt DateTime @default(now())
+  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, studentId])
+}
+
+// Sondage post-session
+model Survey {
+  id        String   @id @default(cuid())
+  userId    String
+  section   String
+  resultId  String?
+  rating    Int      // 1–5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([section])
+  @@index([createdAt])
+}
+
+// Événements de navigation / usage
+model PageEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  event     String   // "page_view" | "session_start" | "session_complete" | "pricing_view" | …
+  page      String   // "/dashboard" | "/practice/CE" | …
+  section   String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([event])
+  @@index([page])
+  @@index([createdAt])
+}
+
+// Séries d'épreuves générées par l'admin (une entrée par section, upsert)
+model ExamSeriesConfig {
+  id        String   @id @default(cuid())
+  section   String   // 'EE' | 'CE'
+  series    Json     // EE: [{id,t1Id,t2Id,t3Id}…] | CE: [{id,questionIds:[…]}…]
+  savedAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([section])
 }

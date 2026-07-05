@@ -148,7 +148,7 @@ router.get('/submissions/prof/:professorId', async (req: Request, res: Response)
     orderBy: { createdAt: 'desc' },
   });
 
-  res.json({ submissions: subs.map((s: { classId?: string }) => ({
+  res.json({ submissions: subs.map((s: { classId?: string | null }) => ({
     ...s,
     className: classes.find((c: { id: string }) => c.id === s.classId)?.name,
   })) });
