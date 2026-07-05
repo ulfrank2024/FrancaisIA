@@ -1,13 +1,13 @@
 import { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
-  const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://francaisIA.com';
+  const site = (process.env.NEXT_PUBLIC_SITE_URL || 'https://reussirtcf.ca').replace(/\/$/, '');
   return {
     rules: [
       {
         userAgent: '*',
-        allow: ['/', '/login', '/register'],
-        disallow: ['/dashboard', '/admin', '/practice', '/onboarding', '/chat', '/results'],
+        allow: ['/', '/pricing', '/register', '/login', '/formation', '/formation-eo', '/legal/'],
+        disallow: ['/dashboard', '/admin', '/practice', '/onboarding', '/redirect', '/chat', '/results', '/join', '/pending-approval', '/prof/'],
       },
     ],
     sitemap: `${site}/sitemap.xml`,

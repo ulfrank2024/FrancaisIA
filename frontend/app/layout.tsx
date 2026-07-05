@@ -35,10 +35,89 @@ export const metadata: Metadata = {
   icons: { icon: '/favicon.ico', apple: '/apple-touch-icon.png' },
 };
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${SITE_URL}/#organization`,
+      name: 'RéussirTCF',
+      url: SITE_URL,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+      },
+      sameAs: [],
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'customer support',
+        email: 'frranklinlontsi99@gmail.com',
+        availableLanguage: ['French'],
+      },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: 'RéussirTCF',
+      description: 'Plateforme de préparation au TCF Canada pour la diaspora africaine',
+      publisher: { '@id': `${SITE_URL}/#organization` },
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/search?q={search_term_string}` },
+        'query-input': 'required name=search_term_string',
+      },
+      inLanguage: 'fr-CA',
+    },
+    {
+      '@type': 'EducationalOrganization',
+      '@id': `${SITE_URL}/#edu`,
+      name: 'RéussirTCF',
+      url: SITE_URL,
+      description: 'Préparation au TCF Canada en ligne — examens simulés, corrections IA, calcul NCLC officiel.',
+      educationalCredentialAwarded: 'Certification de niveau TCF Canada',
+      hasOfferCatalog: {
+        '@type': 'OfferCatalog',
+        name: 'Formations TCF Canada',
+        itemListElement: [
+          {
+            '@type': 'Offer',
+            itemOffered: {
+              '@type': 'Course',
+              name: 'Compréhension Orale & Écrite — TCF Canada',
+              description: 'Entraînement compréhension orale et écrite TCF Canada avec 39 questions chacune.',
+              provider: { '@id': `${SITE_URL}/#edu` },
+              inLanguage: 'fr-CA',
+            },
+          },
+          {
+            '@type': 'Offer',
+            itemOffered: {
+              '@type': 'Course',
+              name: 'Expression Orale & Écrite — TCF Canada',
+              description: 'Sujets expression orale et écrite avec corrections IA instantanées.',
+              provider: { '@id': `${SITE_URL}/#edu` },
+              inLanguage: 'fr-CA',
+            },
+          },
+        ],
+      },
+    },
+  ],
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider localization={frFR}>
       <html lang="fr">
+        <head>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+        </head>
         <body>{children}</body>
       </html>
     </ClerkProvider>
