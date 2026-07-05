@@ -8,7 +8,6 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts';
-import SophieAvatar, { AvatarMood } from '../../components/SophieAvatar';
 import ScoreRing from '../../components/ScoreRing';
 import Spinner from '../../components/Spinner';
 import { api, DashboardData, HistoryItem, LessonAssigned } from '../../lib/api';
@@ -18,12 +17,12 @@ type SectionCode = 'CO' | 'CE' | 'EE' | 'EO';
 type ScoreTarget = { min: number; max: number; unit: string; nclc: number };
 
 const GOAL_SCORES: Record<string, { label: string; icon: string; color: string; nclc: number | null; scores: Record<SectionCode, ScoreTarget | null> | null }> = {
-  fsw:    { label: 'Entrée Express FSW',     icon: '🌟', color: 'indigo', nclc: 7, scores: { CO: { min: 458, max: 699, unit: '/699', nclc: 7 }, CE: { min: 453, max: 699, unit: '/699', nclc: 7 }, EE: { min: 10, max: 20, unit: '/20', nclc: 7 }, EO: { min: 10, max: 20, unit: '/20', nclc: 7 } } },
-  cec_ab: { label: 'Entrée Express CEC 0/A', icon: '🍁', color: 'red',    nclc: 7, scores: { CO: { min: 458, max: 699, unit: '/699', nclc: 7 }, CE: { min: 453, max: 699, unit: '/699', nclc: 7 }, EE: { min: 10, max: 20, unit: '/20', nclc: 7 }, EO: { min: 10, max: 20, unit: '/20', nclc: 7 } } },
-  cec_b:  { label: 'Entrée Express CEC B',   icon: '🔧', color: 'orange', nclc: 5, scores: { CO: { min: 369, max: 699, unit: '/699', nclc: 5 }, CE: { min: 375, max: 699, unit: '/699', nclc: 5 }, EE: { min: 6,  max: 20, unit: '/20', nclc: 5 }, EO: { min: 6,  max: 20, unit: '/20', nclc: 5 } } },
-  pnp:    { label: 'PNP Provincial',         icon: '🏙️', color: 'teal',   nclc: 4, scores: { CO: { min: 331, max: 699, unit: '/699', nclc: 4 }, CE: { min: 342, max: 699, unit: '/699', nclc: 4 }, EE: { min: 4,  max: 20, unit: '/20', nclc: 4 }, EO: { min: 4,  max: 20, unit: '/20', nclc: 4 } } },
-  peq:    { label: 'Québec PEQ',             icon: '🌺', color: 'sky',    nclc: 7, scores: { CO: { min: 458, max: 699, unit: '/699', nclc: 7 }, CE: { min: 453, max: 699, unit: '/699', nclc: 7 }, EE: { min: 10, max: 20, unit: '/20', nclc: 7 }, EO: { min: 10, max: 20, unit: '/20', nclc: 7 } } },
-  citizenship: { label: 'Citoyenneté',       icon: '🏛️', color: 'rose',   nclc: 4, scores: { CO: { min: 331, max: 699, unit: '/699', nclc: 4 }, CE: null, EE: null, EO: { min: 4, max: 20, unit: '/20', nclc: 4 } } },
+  fsw:      { label: 'Entrée Express FSW',     icon: '🌟', color: 'indigo', nclc: 7, scores: { CO: { min: 458, max: 699, unit: '/699', nclc: 7 }, CE: { min: 453, max: 699, unit: '/699', nclc: 7 }, EE: { min: 10, max: 20, unit: '/20', nclc: 7 }, EO: { min: 10, max: 20, unit: '/20', nclc: 7 } } },
+  cec_ab:   { label: 'Entrée Express CEC 0/A', icon: '🍁', color: 'red',    nclc: 7, scores: { CO: { min: 458, max: 699, unit: '/699', nclc: 7 }, CE: { min: 453, max: 699, unit: '/699', nclc: 7 }, EE: { min: 10, max: 20, unit: '/20', nclc: 7 }, EO: { min: 10, max: 20, unit: '/20', nclc: 7 } } },
+  cec_b:    { label: 'Entrée Express CEC B',   icon: '🔧', color: 'orange', nclc: 5, scores: { CO: { min: 369, max: 699, unit: '/699', nclc: 5 }, CE: { min: 375, max: 699, unit: '/699', nclc: 5 }, EE: { min: 6,  max: 20, unit: '/20', nclc: 5 }, EO: { min: 6,  max: 20, unit: '/20', nclc: 5 } } },
+  pnp:      { label: 'PNP Provincial',         icon: '🏙️', color: 'teal',   nclc: 4, scores: { CO: { min: 331, max: 699, unit: '/699', nclc: 4 }, CE: { min: 342, max: 699, unit: '/699', nclc: 4 }, EE: { min: 4,  max: 20, unit: '/20', nclc: 4 }, EO: { min: 4,  max: 20, unit: '/20', nclc: 4 } } },
+  peq:      { label: 'Québec PEQ',             icon: '🌺', color: 'sky',    nclc: 7, scores: { CO: { min: 458, max: 699, unit: '/699', nclc: 7 }, CE: { min: 453, max: 699, unit: '/699', nclc: 7 }, EE: { min: 10, max: 20, unit: '/20', nclc: 7 }, EO: { min: 10, max: 20, unit: '/20', nclc: 7 } } },
+  citizenship: { label: 'Citoyenneté',         icon: '🏛️', color: 'rose',   nclc: 4, scores: { CO: { min: 331, max: 699, unit: '/699', nclc: 4 }, CE: null, EE: null, EO: { min: 4, max: 20, unit: '/20', nclc: 4 } } },
 };
 
 const SECTION_META: Record<SectionCode, { label: string; icon: string; color: string; radarColor: string; bg: string; border: string }> = {
@@ -34,13 +33,6 @@ const SECTION_META: Record<SectionCode, { label: string; icon: string; color: st
 };
 
 const SECTIONS = Object.entries(SECTION_META).map(([code, m]) => ({ code: code as SectionCode, ...m }));
-
-function getMood(avg: number | null): AvatarMood {
-  if (!avg) return 'idle';
-  if (avg >= 80) return 'celebrate';
-  if (avg >= 60) return 'happy';
-  return 'encourage';
-}
 
 function buildRecommendations(dashboard: DashboardData | null, goalData: typeof GOAL_SCORES[string] | null): string[] {
   const recs: string[] = [];
@@ -76,7 +68,7 @@ function buildRecommendations(dashboard: DashboardData | null, goalData: typeof 
     if (missing.length > 0) {
       recs.push(`Pour atteindre ton objectif (${goalData.label}), il te manque encore : ${missing.join(', ')}.`);
     } else if (statMap[w] !== null) {
-      recs.push(`Bravo ! Tu atteins les objectifs de toutes les sections. Continue à t'entraîner pour consolider tes scores.`);
+      recs.push('Bravo ! Tu atteins les objectifs de toutes les sections. Continue à t\'entraîner pour consolider tes scores.');
     }
   }
 
@@ -112,6 +104,18 @@ function buildProgressData(history: HistoryItem[]): { date: string; CO?: number;
     });
     return entry;
   });
+}
+
+function UserAvatar({ name, size = 40 }: { name: string; size?: number }) {
+  const initials = name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+  return (
+    <div
+      style={{ width: size, height: size, fontSize: size * 0.38 }}
+      className="rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white font-black flex-shrink-0 shadow-sm"
+    >
+      {initials}
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -175,7 +179,6 @@ export default function DashboardPage() {
     <div className="min-h-screen flex items-center justify-center"><Spinner size={40} /></div>
   );
 
-  const mood = getMood(dashboard?.globalAverage ?? null);
   const recommendations = buildRecommendations(dashboard, goalData);
   const progressData = buildProgressData(history);
   const visibleHistory = showAllHistory ? history : history.slice(0, 5);
@@ -186,6 +189,10 @@ export default function DashboardPage() {
     return { section: s.code, score: stat?.averageScore ?? 0, fullMark: 100 };
   });
   const hasRadarData = radarData.some(d => d.score > 0);
+  const sectionsWithData = SECTIONS.filter(s => {
+    const stat = dashboard?.stats.find(x => x.section === s.code);
+    return (stat?.attempts ?? 0) > 0;
+  });
 
   const firstName = user.full_name.split(' ')[0];
 
@@ -194,7 +201,7 @@ export default function DashboardPage() {
       {/* Nav */}
       <nav className="bg-white border-b border-slate-100 sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
-          <span className="text-lg font-black bg-gradient-to-r text-slate-900">🍁 RéussirTCF</span>
+          <span className="text-lg font-black text-slate-900">🍁 RéussirTCF</span>
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="text-sm text-slate-500 font-medium hidden sm:block">{firstName}</span>
             {isInClass && (
@@ -208,7 +215,7 @@ export default function DashboardPage() {
                 )}
               </Link>
             )}
-            <Link href="/chat" className="text-xs bg-indigo-50 text-indigo-700 font-semibold px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-indigo-100 transition-colors border border-indigo-100">
+            <Link href="/chat" className="text-xs bg-red-50 text-red-700 font-semibold px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-red-100 transition-colors border border-red-100">
               <span className="sm:hidden">💬</span>
               <span className="hidden sm:inline">💬 Chat IA</span>
             </Link>
@@ -222,16 +229,16 @@ export default function DashboardPage() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
 
-        {/* ── Hero compact ─────────────────────────────────────────── */}
+        {/* ── Hero ─────────────────────────────────────────────────── */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 sm:px-8 py-5 sm:py-6 flex items-center gap-4 sm:gap-6">
-          <SophieAvatar mood={mood} size="sm" showMessage={false} />
+          <UserAvatar name={user.full_name} size={48} />
           <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl font-black text-slate-900">Bonjour, {firstName} 👋</h1>
             <p className="text-slate-400 text-sm mt-0.5">Tableau de bord TCF Canada</p>
           </div>
           {dashboard?.globalAverage != null && (
-            <div className="flex items-center gap-3 bg-indigo-50 rounded-2xl px-4 py-3 flex-shrink-0">
+            <div className="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100 flex-shrink-0">
               <ScoreRing score={dashboard.globalAverage} size={52} />
               <div className="hidden sm:block">
                 <div className="text-sm font-black text-slate-700">Score moyen</div>
@@ -241,9 +248,45 @@ export default function DashboardPage() {
           )}
         </motion.div>
 
-        {/* ── Objectif TCF (onboarding CTA si pas défini) ─────────── */}
+        {/* ── KPI bar ──────────────────────────────────────────────── */}
+        {!loading && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+            className="grid grid-cols-3 gap-3">
+            {[
+              {
+                label: 'Sessions',
+                value: dashboard?.totalAttempts ?? 0,
+                icon: '🎯',
+                color: 'text-indigo-600',
+                bg: 'bg-indigo-50 border-indigo-100',
+              },
+              {
+                label: 'Score moyen',
+                value: dashboard?.globalAverage != null ? `${Math.round(dashboard.globalAverage)}%` : '—',
+                icon: '📊',
+                color: 'text-emerald-600',
+                bg: 'bg-emerald-50 border-emerald-100',
+              },
+              {
+                label: 'Sections pratiquées',
+                value: `${sectionsWithData.length}/4`,
+                icon: '🏆',
+                color: 'text-rose-600',
+                bg: 'bg-rose-50 border-rose-100',
+              },
+            ].map(kpi => (
+              <div key={kpi.label} className={`rounded-2xl border p-4 ${kpi.bg} flex flex-col items-center sm:items-start gap-1`}>
+                <span className="text-lg">{kpi.icon}</span>
+                <div className={`text-xl sm:text-2xl font-black ${kpi.color}`}>{kpi.value}</div>
+                <div className="text-[11px] text-slate-500 font-medium">{kpi.label}</div>
+              </div>
+            ))}
+          </motion.div>
+        )}
+
+        {/* ── Objectif TCF ─────────────────────────────────────────── */}
         {goalData?.scores ? (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
             className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -253,7 +296,7 @@ export default function DashboardPage() {
                   <div className="text-xs text-slate-400">NCLC {goalData.nclc} minimum requis</div>
                 </div>
               </div>
-              <Link href="/settings" className="text-xs text-indigo-600 hover:underline font-semibold flex-shrink-0">Modifier</Link>
+              <Link href="/settings" className="text-xs text-red-600 hover:underline font-semibold flex-shrink-0">Modifier</Link>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {(Object.keys(goalData.scores) as SectionCode[]).map(code => {
@@ -289,20 +332,20 @@ export default function DashboardPage() {
               })}
             </div>
           </motion.div>
-        ) : !meta?.completedOnboarding && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }}
-            className="bg-indigo-50 border border-indigo-100 rounded-2xl px-5 py-4 flex items-center justify-between">
+        ) : (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.08 }}
+            className="bg-red-50 border border-red-100 rounded-2xl px-5 py-4 flex items-center justify-between">
             <div>
-              <div className="font-bold text-indigo-800 text-sm">🎯 Définis ton objectif TCF Canada</div>
-              <div className="text-xs text-indigo-600 mt-0.5">Sophie calculera tes scores minimum à atteindre</div>
+              <div className="font-bold text-red-800 text-sm">🎯 Définis ton objectif TCF Canada</div>
+              <div className="text-xs text-red-500 mt-0.5">Nous calculerons les scores minimum à atteindre pour ton programme</div>
             </div>
-            <Link href="/onboarding" className="text-xs font-bold bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors flex-shrink-0 ml-4">
+            <Link href="/onboarding" className="text-xs font-bold bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 transition-colors flex-shrink-0 ml-4">
               Définir →
             </Link>
           </motion.div>
         )}
 
-        {/* ── 4 Sections TCF — grille 2×2 ─────────────────────────── */}
+        {/* ── 4 sections TCF ───────────────────────────────────────── */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-black text-slate-800">Pratiquer une compétence</h2>
@@ -315,10 +358,9 @@ export default function DashboardPage() {
               const avg = stat?.averageScore != null ? Math.round(stat.averageScore) : null;
               return (
                 <motion.div key={s.code} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.08 + i * 0.06 }}>
+                  transition={{ delay: 0.12 + i * 0.06 }}>
                   <Link href={`/practice/${s.code}`}
                     className="flex flex-col bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all overflow-hidden group">
-                    {/* Gradient top strip */}
                     <div className={`bg-gradient-to-r ${s.color} px-4 pt-4 pb-3 flex items-center gap-3`}>
                       <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform">
                         {s.icon}
@@ -328,7 +370,6 @@ export default function DashboardPage() {
                         <div className="text-white/80 text-xs leading-tight hidden sm:block">{s.label}</div>
                       </div>
                     </div>
-                    {/* Body */}
                     <div className="px-4 py-3 flex-1 flex flex-col justify-between gap-2">
                       {hasPracticed && avg !== null ? (
                         <>
@@ -365,25 +406,25 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Recommandations Sophie ───────────────────────────────── */}
+        {/* ── Conseils personnalisés ───────────────────────────────── */}
         {recommendations.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="bg-gradient-to-br from-indigo-50 to-cyan-50 rounded-2xl p-5 sm:p-6 border border-indigo-100">
+            className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-sm">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-sm font-black flex-shrink-0">✨</div>
+              <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-base flex-shrink-0">💡</div>
               <div>
-                <div className="text-sm font-black text-slate-800">Recommandations de Sophie</div>
-                <div className="text-xs text-slate-500">Basées sur tes résultats</div>
+                <div className="text-sm font-black text-slate-800">Conseils personnalisés</div>
+                <div className="text-xs text-slate-400">Basés sur tes résultats</div>
               </div>
             </div>
             <div className="space-y-2.5">
               {recommendations.map((rec, i) => (
                 <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 + i * 0.07 }}
-                  className="flex items-start gap-3 bg-white/70 rounded-xl px-4 py-3">
-                  <span className="text-indigo-400 font-black text-sm mt-0.5 flex-shrink-0">{i + 1}.</span>
+                  className="flex items-start gap-3 bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+                  <span className="text-slate-400 font-black text-sm mt-0.5 flex-shrink-0">{i + 1}.</span>
                   <p className="text-sm text-slate-700 leading-relaxed">
                     {rec.split('**').map((part, j) =>
-                      j % 2 === 1 ? <strong key={j} className="text-indigo-700">{part}</strong> : <span key={j}>{part}</span>
+                      j % 2 === 1 ? <strong key={j} className="text-slate-900">{part}</strong> : <span key={j}>{part}</span>
                     )}
                   </p>
                 </motion.div>
@@ -392,7 +433,7 @@ export default function DashboardPage() {
           </motion.div>
         )}
 
-        {/* ── Graphiques (seulement si données) ───────────────────── */}
+        {/* ── Graphiques ───────────────────────────────────────────── */}
         {!loading && (hasRadarData || hasChartData) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {hasRadarData && (
@@ -404,7 +445,7 @@ export default function DashboardPage() {
                   <RadarChart data={radarData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
                     <PolarGrid stroke="#e2e8f0" />
                     <PolarAngleAxis dataKey="section" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 700 }} />
-                    <Radar name="Score" dataKey="score" stroke="#6366f1" fill="#6366f1" fillOpacity={0.25} strokeWidth={2} dot={{ r: 4, fill: '#6366f1' }} />
+                    <Radar name="Score" dataKey="score" stroke="#dc2626" fill="#dc2626" fillOpacity={0.18} strokeWidth={2} dot={{ r: 4, fill: '#dc2626' }} />
                   </RadarChart>
                 </ResponsiveContainer>
               </motion.div>
@@ -440,7 +481,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Cours assignés par le prof ───────────────────────────── */}
+        {/* ── Cours assignés ───────────────────────────────────────── */}
         {lessons.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
             <div className="flex items-center justify-between mb-4">
@@ -453,15 +494,15 @@ export default function DashboardPage() {
                 return (
                   <motion.div key={lesson.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
                     <Link href={`/lessons/${lesson.id}`}
-                      className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md hover:border-indigo-200 transition-all group">
+                      className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md hover:border-red-200 transition-all group">
                       <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${sectionMeta.color} flex items-center justify-center text-white text-base flex-shrink-0 shadow-sm`}>
                         {sectionMeta.icon}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold text-slate-800 text-sm group-hover:text-indigo-700 transition-colors truncate">{lesson.title}</div>
+                        <div className="font-bold text-slate-800 text-sm group-hover:text-red-700 transition-colors truncate">{lesson.title}</div>
                         <div className="text-xs text-slate-400 mt-0.5">{lesson.section} · Assigné le {new Date(lesson.assignedAt).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })}</div>
                       </div>
-                      <span className="text-slate-300 group-hover:text-indigo-500 transition-colors">→</span>
+                      <span className="text-slate-300 group-hover:text-red-500 transition-colors">→</span>
                     </Link>
                   </motion.div>
                 );
@@ -473,7 +514,7 @@ export default function DashboardPage() {
         {/* ── Historique ───────────────────────────────────────────── */}
         {loading ? (
           <div className="flex justify-center py-8"><Spinner size={32} /></div>
-        ) : history.length > 0 && (
+        ) : history.length > 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-black text-slate-800">Historique des sessions</h2>
@@ -507,10 +548,22 @@ export default function DashboardPage() {
             </div>
             {history.length > 5 && (
               <button onClick={() => setShowAllHistory(v => !v)}
-                className="mt-3 w-full text-xs text-indigo-600 font-semibold py-2 hover:bg-indigo-50 rounded-xl transition-colors">
+                className="mt-3 w-full text-xs text-red-600 font-semibold py-2 hover:bg-red-50 rounded-xl transition-colors">
                 {showAllHistory ? '▲ Voir moins' : `▼ Voir les ${history.length - 5} sessions précédentes`}
               </button>
             )}
+          </motion.div>
+        ) : (
+          /* État vide — première connexion */
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}
+            className="bg-white rounded-2xl border border-dashed border-slate-200 p-8 text-center">
+            <div className="text-4xl mb-3">🎯</div>
+            <div className="font-black text-slate-800 text-base mb-1">Aucune session pour l'instant</div>
+            <p className="text-sm text-slate-400 mb-5">Lance ta première pratique pour voir tes statistiques apparaître ici.</p>
+            <Link href="/practice/CO"
+              className="inline-flex items-center gap-2 bg-red-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl hover:bg-red-700 transition-colors">
+              Commencer la Compréhension Orale →
+            </Link>
           </motion.div>
         )}
 
