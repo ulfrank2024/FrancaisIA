@@ -36,7 +36,9 @@ router.post('/clerk', async (req: Request, res: Response): Promise<void> => {
 
   try {
     const wh = new Webhook(webhookSecret);
-    const payload = wh.verify(JSON.stringify(req.body), {
+    // Utiliser le raw body (Buffer) — re-stringifier casse la signature HMAC
+    const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body));
+    const payload = wh.verify(rawBody, {
       'svix-id': svixId,
       'svix-timestamp': svixTimestamp,
       'svix-signature': svixSignature,
