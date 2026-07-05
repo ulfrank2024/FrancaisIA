@@ -1,0 +1,248 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id
+  email     String   @unique
+  fullName  String
+  avatarUrl String?
+  level     Level    @default(A1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  results   Result[]
+}
+
+model Question {
+  id           String   @id @default(cuid())
+  section      Section
+  level        Level
+  question     String
+  options      Json?
+  answer       String?
+  explanation  String?
+  audioUrl     String?
+  transcript   String?  // CO: texte lu par TTS
+  taskNumber   Int?     // EE/EO: numéro de tâche dans la session (1, 2 ou 3)
+  sessionGroup String?  // EE/EO: identifiant de session (regroupe 3 tâches)
+  theme        String?  // thème (immigration, travail, famille, santé...)
+  wordCountMin Int?     // EE: nombre de mots minimum attendu
+  wordCountMax Int?     // EE: nombre de mots maximum attendu
+  timeLimitMin Int?     // durée suggérée en minutes
+  imageUrl     String?  // CO Q1-2: image affichée; EO: image à décrire
+  points       Int?     // CO: points TCF par question (3/9/15/21/26/33)
+  orderNumber  Int?     // CO: numéro de passage (1-39) pour tri garanti
+  tags         String[] @default([])
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+}
+
+model Result {
+  id        String        @id @default(cuid())
+  userId    String
+  section   ResultSection
+  score     Int
+  total     Int
+  correct   Int
+  details   Json          @default("[]")
+  durationS Int?
+  createdAt DateTime      @default(now())
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Level {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+enum Section {
+  CO
+  CE
+  EE
+  EO
+}
+
+enum ResultSection {
+  CO
+  CE
+  EE
+  EO
+  MOCK
+}
+
+enum UserRole {
+  apprenant
+  professeur
+}
+
+model Class {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  inviteCode  String            @unique
+  professorId String
+  createdAt   DateTime          @default(now())
+  members     ClassMembership[]
+  submissions ExerciseSubmission[]
+}
+
+model ClassMembership {
+  id        String   @id @default(cuid())
+  classId   String
+  studentId String
+  joinedAt  DateTime @default(now())
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, studentId])
+}
+
+model ExerciseSubmission {
+  id           String            @id @default(cuid())
+  studentId    String
+  classId      String?
+  section      String
+  question     String
+  answer       String
+  status       SubmissionStatus  @default(pending)
+  score        Int?
+  feedback     String?
+  strengths    String[]          @default([])
+  errors       String[]          @default([])
+  correctedBy  String?
+  correctedAt  DateTime?
+  createdAt    DateTime          @default(now())
+  class        Class?            @relation(fields: [classId], references: [id])
+}
+
+enum SubmissionStatus {
+  pending
+  corrected
+}
+
+model ProfessorRequest {
+  id          String                @id @default(cuid())
+  userId      String                @unique
+  email       String
+  fullName    String
+  message     String?
+  status      ProfessorRequestStatus @default(pending)
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime              @default(now())
+}
+
+enum ProfessorRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+model ProfessorInvitation {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  invitedBy   String
+  token       String   @unique @default(cuid())
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model Subscription {
+  id        String           @id @default(cuid())
+  userId    String           @unique
+  email     String
+  plan      SubscriptionPlan @default(free)
+  status    SubStatus        @default(active)
+  startedAt DateTime         @default(now())
+  expiresAt DateTime?
+  createdAt DateTime         @default(now())
+}
+
+enum SubscriptionPlan {
+  free
+  bronze
+  silver
+  gold
+  pro
+  annual
+}
+
+enum SubStatus {
+  active
+  cancelled
+  expired
+}
+
+model Lesson {
+  id          String             @id @default(cuid())
+  professorId String
+  title       String
+  section     String
+  content     String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  assignments LessonAssignment[]
+}
+
+model LessonAssignment {
+  id         String   @id @default(cuid())
+  lessonId   String
+  studentId  String
+  classId    String
+  assignedAt DateTime @default(now())
+  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, studentId])
+}
+
+// Sondage post-session
+model Survey {
+  id        String   @id @default(cuid())
+  userId    String
+  section   String
+  resultId  String?
+  rating    Int      // 1–5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([section])
+  @@index([createdAt])
+}
+
+// Événements de navigation / usage
+model PageEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  event     String   // "page_view" | "session_start" | "session_complete" | "pricing_view" | …
+  page      String   // "/dashboard" | "/practice/CE" | …
+  section   String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([event])
+  @@index([page])
+  @@index([createdAt])
+}
+
+// Séries d'épreuves générées par l'admin (une entrée par section, upsert)
+model ExamSeriesConfig {
+  id        String   @id @default(cuid())
+  section   String   // 'EE' | 'CE'
+  series    Json     // EE: [{id,t1Id,t2Id,t3Id}…] | CE: [{id,questionIds:[…]}…]
+  savedAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([section])
+}
