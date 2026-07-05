@@ -4,8 +4,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "vercel-build": "echo ok"
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "groq-sdk": "^0.7.0",
