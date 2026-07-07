@@ -117,8 +117,8 @@ export default function TermsPage() {
 
         <div className="bg-slate-900 text-white rounded-2xl p-6 text-center">
           <p className="font-bold mb-2">Des questions sur nos conditions ?</p>
-          <a href="mailto:legal@reussirtcf.ca" className="text-indigo-400 hover:text-indigo-300 transition-colors font-semibold">
-            legal@reussirtcf.ca
+          <a href="mailto:legal@reussir-tcf.ca" className="text-indigo-400 hover:text-indigo-300 transition-colors font-semibold">
+            legal@reussir-tcf.ca
           </a>
         </div>
 

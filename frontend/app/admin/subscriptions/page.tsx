@@ -7,7 +7,6 @@ import Spinner from '../../../components/Spinner';
 import { adminApi, Subscription } from '../../../lib/admin-api';
 import { useAuth } from '../../../lib/auth-context';
 
-function isAdmin(id: string) { return id === process.env.NEXT_PUBLIC_ADMIN_USER_ID; }
 
 const PLAN_META: Record<string, { label: string; color: string; badge: string; mthPrice: number }> = {
   free:   { label: 'Gratuit', color: 'from-slate-500 to-slate-600',     badge: 'bg-slate-800 text-slate-400 border-slate-700',           mthPrice: 0 },
@@ -42,7 +41,7 @@ export default function AdminSubscriptionsPage() {
   const [revokingId, setRevokingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && user && !isAdmin(user.id)) router.push('/dashboard');
+    if (!authLoading && user && user.role !== undefined && user.role !== 'admin') router.push('/dashboard');
   }, [user, authLoading, router]);
 
   const load = () => {
@@ -50,7 +49,7 @@ export default function AdminSubscriptionsPage() {
     adminApi.subscriptions().then(r => setSubs(r.subscriptions)).catch(() => {}).finally(() => setLoading(false));
   };
 
-  useEffect(() => { if (user && isAdmin(user.id)) load(); }, [user]);
+  useEffect(() => { if (user && user.role === 'admin') load(); }, [user]);
 
   async function handleSave() {
     if (!form.userId || !form.email) return;

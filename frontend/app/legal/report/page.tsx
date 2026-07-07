@@ -49,7 +49,7 @@ export default function ReportPage() {
       if (!res.ok) throw new Error('Erreur serveur');
       setSent(true);
     } catch {
-      setError('Une erreur est survenue. Écrivez directement à urgent@reussirtcf.ca');
+      setError('Une erreur est survenue. Écrivez directement à urgent@reussir-tcf.ca');
     } finally {
       setSending(false);
     }
@@ -68,7 +68,7 @@ export default function ReportPage() {
           <span className="text-2xl flex-shrink-0">⚡</span>
           <div>
             <p className="font-bold text-amber-800 text-sm">Problème urgent ?</p>
-            <p className="text-amber-700 text-sm">Si votre problème est critique (service inutilisable, paiement erroné), contactez-nous directement sur <a href="mailto:urgent@reussirtcf.ca" className="underline font-bold">urgent@reussirtcf.ca</a> — réponse sous 4 heures.</p>
+            <p className="text-amber-700 text-sm">Si votre problème est critique (service inutilisable, paiement erroné), contactez-nous directement sur <a href="mailto:urgent@reussir-tcf.ca" className="underline font-bold">urgent@reussir-tcf.ca</a> — réponse sous 4 heures.</p>
           </div>
         </div>
 
@@ -202,7 +202,7 @@ export default function ReportPage() {
                     type="url"
                     value={form.url}
                     onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
-                    placeholder="https://reussirtcf.ca/practice/CO"
+                    placeholder="https://reussir-tcf.ca/practice/CO"
                     className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
                   />
                 </div>

@@ -8,9 +8,6 @@ import Spinner from '../../../components/Spinner';
 import { adminApi, BankSession } from '../../../lib/admin-api';
 import { useAuth } from '../../../lib/auth-context';
 
-function isAdmin(userId: string) {
-  return userId === process.env.NEXT_PUBLIC_ADMIN_USER_ID;
-}
 
 const TASK_META: Record<number, { label: string; color: string; gradient: string; icon: string; prep?: string; points: string; duration: string }> = {
   1: { label: 'Présentation personnelle', icon: '👤', gradient: 'from-sky-400 to-cyan-500',     color: 'text-sky-700',    points: '3 pts',  duration: '2 min',      },
@@ -32,7 +29,7 @@ function PreviewEOInner() {
 
   useEffect(() => {
     if (!authLoading && !user) { router.push('/login'); return; }
-    if (!authLoading && user && !isAdmin(user.id)) { router.push('/dashboard'); return; }
+    if (!authLoading && user && user.role !== undefined && user.role !== 'admin') { router.push('/dashboard'); return; }
   }, [user, authLoading, router]);
 
   const load = useCallback(async () => {
@@ -55,7 +52,7 @@ function PreviewEOInner() {
   }, []);
 
   useEffect(() => {
-    if (user && isAdmin(user.id)) load();
+    if (user && user.role === 'admin') load();
   }, [user, load]);
 
   const availableGroups = Object.keys(sessions).sort();

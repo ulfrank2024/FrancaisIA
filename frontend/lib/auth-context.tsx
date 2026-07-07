@@ -8,6 +8,7 @@ export type AppUser = {
   email: string;
   full_name: string;
   avatarUrl?: string | null;
+  role?: string;
 };
 
 export function useAuth() {
@@ -23,8 +24,10 @@ export function useAuth() {
       email: user.primaryEmailAddress?.emailAddress ?? '',
       full_name: user.fullName ?? user.firstName ?? 'Utilisateur',
       avatarUrl: user.imageUrl,
+      role: (user.unsafeMetadata?.role as string)
+        ?? (user.id === process.env.NEXT_PUBLIC_ADMIN_USER_ID ? 'admin' : undefined),
     };
-  }, [user?.id, user?.primaryEmailAddress?.emailAddress, user?.fullName, user?.firstName, user?.imageUrl]);
+  }, [user?.id, user?.primaryEmailAddress?.emailAddress, user?.fullName, user?.firstName, user?.imageUrl, user?.unsafeMetadata]);
 
   // Plan depuis Clerk unsafeMetadata — mis à jour par le webhook Stripe
   // Si subscriptionEnd est dépassé, on retombe sur free côté client aussi

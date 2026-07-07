@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const site = (process.env.NEXT_PUBLIC_SITE_URL || 'https://reussirtcf.ca').replace(/\/$/, '');
+  const site = (process.env.NEXT_PUBLIC_SITE_URL || 'https://reussir-tcf.ca').replace(/\/$/, '');
   const now = new Date();
 
   return [

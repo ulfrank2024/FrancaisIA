@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         <section>
           <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 mb-6">
             <p className="text-indigo-800 font-medium">
-              RéussirTCF s'engage à protéger la vie privée de ses utilisateurs. Cette politique explique quelles données nous collectons, pourquoi, et comment vous pouvez exercer vos droits. Elle s'applique à tous les utilisateurs de la plateforme <strong>reussirtcf.ca</strong>.
+              RéussirTCF s'engage à protéger la vie privée de ses utilisateurs. Cette politique explique quelles données nous collectons, pourquoi, et comment vous pouvez exercer vos droits. Elle s'applique à tous les utilisateurs de la plateforme <strong>reussir-tcf.ca</strong>.
             </p>
           </div>
         </section>
@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           <p>
             <strong>RéussirTCF Inc.</strong><br />
             Montréal, Québec, Canada<br />
-            Email : <a href="mailto:privacy@reussirtcf.ca" className="text-indigo-600 hover:underline">privacy@reussirtcf.ca</a>
+            Email : <a href="mailto:privacy@reussir-tcf.ca" className="text-indigo-600 hover:underline">privacy@reussir-tcf.ca</a>
           </p>
         </Section>
 
@@ -115,7 +115,7 @@ export default function PrivacyPage() {
               </div>
             ))}
           </div>
-          <p className="mt-3">Pour exercer vos droits, écrivez à <a href="mailto:privacy@reussirtcf.ca" className="text-indigo-600 hover:underline">privacy@reussirtcf.ca</a>. Nous répondons dans un délai de <strong>30 jours</strong>.</p>
+          <p className="mt-3">Pour exercer vos droits, écrivez à <a href="mailto:privacy@reussir-tcf.ca" className="text-indigo-600 hover:underline">privacy@reussir-tcf.ca</a>. Nous répondons dans un délai de <strong>30 jours</strong>.</p>
         </Section>
 
         <Section title="7. Cookies">
@@ -173,8 +173,8 @@ export default function PrivacyPage() {
 
         <div className="bg-slate-900 text-white rounded-2xl p-6 text-center">
           <p className="font-bold mb-2">Questions sur vos données personnelles ?</p>
-          <a href="mailto:privacy@reussirtcf.ca" className="text-indigo-400 hover:text-indigo-300 transition-colors font-semibold">
-            privacy@reussirtcf.ca
+          <a href="mailto:privacy@reussir-tcf.ca" className="text-indigo-400 hover:text-indigo-300 transition-colors font-semibold">
+            privacy@reussir-tcf.ca
           </a>
           <p className="text-slate-400 text-xs mt-2">Réponse garantie sous 30 jours ouvrables</p>
         </div>

@@ -130,7 +130,7 @@ export default function OgImage() {
             letterSpacing: '1px',
           }}
         >
-          reussirtcf.ca
+          reussir-tcf.ca
         </div>
       </div>
     ),

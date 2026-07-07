@@ -104,7 +104,7 @@ export default function AccessibilityPage() {
           <p>Si vous rencontrez un obstacle lors de l'utilisation de RéussirTCF, nous souhaitons le corriger rapidement. Contactez-nous :</p>
           <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5 mt-3">
             <div className="space-y-2">
-              <div>📧 <a href="mailto:accessibility@reussirtcf.ca" className="text-indigo-700 font-bold hover:underline">accessibility@reussirtcf.ca</a></div>
+              <div>📧 <a href="mailto:accessibility@reussir-tcf.ca" className="text-indigo-700 font-bold hover:underline">accessibility@reussir-tcf.ca</a></div>
               <div>📋 <a href="/legal/report" className="text-indigo-700 hover:underline">Formulaire de signalement en ligne</a></div>
               <p className="text-xs text-slate-500 mt-2">Nous nous engageons à répondre sous <strong>5 jours ouvrables</strong> et à corriger les problèmes critiques d'accessibilité sous <strong>30 jours</strong>.</p>
             </div>

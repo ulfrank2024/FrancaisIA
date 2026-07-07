@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
   sendBrevo({
     to:      adminEmail,
-    from:    { name: 'RéussirTCF', email: 'noreply@reussirtcf.ca' },
+    from:    { name: 'RéussirTCF', email: 'noreply@reussir-tcf.ca' },
     subject: `[Newsletter] Nouvel abonné : ${email}`,
     html: `
       <h2 style="color:#111827;margin:0 0 20px">📧 Nouvel abonné newsletter</h2>

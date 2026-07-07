@@ -95,12 +95,12 @@ export async function POST(req: NextRequest) {
                 <td style="padding:12px 16px;border:1px solid #e5e7eb">${expiresAt.toLocaleDateString('fr-CA')}</td>
               </tr>
             </table>
-            <a href="https://reussirtcf.ca/dashboard"
+            <a href="https://reussir-tcf.ca/dashboard"
                style="display:inline-block;background:#dc2626;color:#ffffff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:900;font-size:15px">
               Accéder à mon espace →
             </a>
             <p style="color:#9ca3af;font-size:12px;margin-top:24px">
-              Problème avec ton paiement ? Écris-nous à <a href="mailto:support@reussirtcf.ca" style="color:#dc2626">support@reussirtcf.ca</a>
+              Problème avec ton paiement ? Écris-nous à <a href="mailto:support@reussir-tcf.ca" style="color:#dc2626">support@reussir-tcf.ca</a>
             </p>
           `,
         }).catch(err => console.error('[Brevo] Confirmation abonnement:', err));

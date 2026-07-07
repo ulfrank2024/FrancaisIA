@@ -8,9 +8,6 @@ import Spinner from '../../../components/Spinner';
 import { adminApi, BankQuestion } from '../../../lib/admin-api';
 import { useAuth } from '../../../lib/auth-context';
 
-function isAdmin(userId: string) {
-  return userId === process.env.NEXT_PUBLIC_ADMIN_USER_ID;
-}
 
 function formatGroupName(key: string): string {
   const match = key.match(/co-serie-(\d+)/i);
@@ -35,7 +32,7 @@ function BankCOInner() {
 
   useEffect(() => {
     if (!authLoading && !user) { router.push('/login'); return; }
-    if (!authLoading && user && !isAdmin(user.id)) { router.push('/dashboard'); return; }
+    if (!authLoading && user && user.role !== undefined && user.role !== 'admin') { router.push('/dashboard'); return; }
   }, [user, authLoading, router]);
 
   const load = useCallback(async () => {
@@ -61,7 +58,7 @@ function BankCOInner() {
   }, []);
 
   useEffect(() => {
-    if (user && isAdmin(user.id)) load();
+    if (user && user.role === 'admin') load();
   }, [user, load]);
 
   async function handleSave(id: string) {

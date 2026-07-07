@@ -8,9 +8,6 @@ import Spinner from '../../../components/Spinner';
 import { adminApi, BankSession } from '../../../lib/admin-api';
 import { useAuth } from '../../../lib/auth-context';
 
-function isAdmin(userId: string) {
-  return userId === process.env.NEXT_PUBLIC_ADMIN_USER_ID;
-}
 
 // Marqueurs d'opposition français — détection automatique même sans \n\n
 const OPPOSITION_RE = /\.\s+(Cependant[,\s]|Toutefois[,\s]|Néanmoins[,\s]|En revanche[,\s]|Pourtant[,\s]|Or[,\s]|Mais |À l['']opposé|D['']un autre côté|D['']une autre perspective|En opposition|Par contre[,\s])/;
@@ -82,7 +79,7 @@ function PreviewEEInner() {
 
   useEffect(() => {
     if (!authLoading && !user) { router.push('/login'); return; }
-    if (!authLoading && user && !isAdmin(user.id)) { router.push('/dashboard'); return; }
+    if (!authLoading && user && user.role !== undefined && user.role !== 'admin') { router.push('/dashboard'); return; }
   }, [user, authLoading, router]);
 
   const t1Id = searchParams.get('t1');
@@ -125,7 +122,7 @@ function PreviewEEInner() {
   }, [searchParams, isCustomCombo, t1Id, t2Id, t3Id]);
 
   useEffect(() => {
-    if (user && isAdmin(user.id)) load();
+    if (user && user.role === 'admin') load();
   }, [user, load]);
 
   const availableGroups = Object.keys(sessions).sort();

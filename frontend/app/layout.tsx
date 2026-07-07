@@ -3,7 +3,7 @@ import './globals.css';
 import { ClerkProvider } from '@clerk/nextjs';
 import { frFR } from '@clerk/localizations';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reussirtcf.ca';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reussir-tcf.ca';
 
 export const metadata: Metadata = {
   title: {
@@ -23,16 +23,14 @@ export const metadata: Metadata = {
     title: 'RéussirTCF — Préparation TCF Canada en ligne | Examens simulés & IA',
     description: 'Prépare et réussis ton TCF Canada en ligne. Examens simulés, corrections IA instantanées, calcul NCLC officiel. La plateforme #1 de la diaspora africaine au Canada.',
     locale: 'fr_CA',
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'RéussirTCF — Préparation TCF Canada en ligne' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'RéussirTCF — Préparation TCF Canada en ligne',
     description: 'Examens simulés, corrections IA, calcul NCLC. La plateforme de la diaspora africaine au Canada.',
-    images: ['/og-image.png'],
   },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
-  icons: { icon: '/favicon.ico', apple: '/apple-touch-icon.png' },
+  icons: { icon: '/favicon.ico' },
 };
 
 const jsonLd = {
@@ -53,7 +51,7 @@ const jsonLd = {
       contactPoint: {
         '@type': 'ContactPoint',
         contactType: 'customer support',
-        email: 'frranklinlontsi99@gmail.com',
+        email: 'support@reussir-tcf.ca',
         availableLanguage: ['French'],
       },
     },

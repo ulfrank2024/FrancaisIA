@@ -7,7 +7,6 @@ import Spinner from '../../../components/Spinner';
 import { adminApi, ProfRequest, ProfessorWithClasses, Subscription } from '../../../lib/admin-api';
 import { useAuth } from '../../../lib/auth-context';
 
-function isAdmin(userId: string) { return userId === process.env.NEXT_PUBLIC_ADMIN_USER_ID; }
 
 // Simulation d'un taux journalier fictif (pas de tracking réel par prof pour l'instant)
 const PLAN_PRICE: Record<string, number> = { pro: 9.99, annual: 79.99 / 12, free: 0 };
@@ -209,7 +208,7 @@ function AdminProfessorsPageInner() {
   const [actionId, setActionId]       = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && user && !isAdmin(user.id)) router.push('/dashboard');
+    if (!authLoading && user && user.role !== undefined && user.role !== 'admin') router.push('/dashboard');
   }, [user, authLoading, router]);
 
   const load = () => {
@@ -226,7 +225,7 @@ function AdminProfessorsPageInner() {
     }).catch(() => {}).finally(() => setLoading(false));
   };
 
-  useEffect(() => { if (user && isAdmin(user.id)) load(); }, [user]);
+  useEffect(() => { if (user && user.role === 'admin') load(); }, [user]);
 
   async function handleApprove(id: string) {
     setActionId(id);

@@ -49,7 +49,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) { router.push('/login'); return; }
-    const role = clerkUser?.unsafeMetadata?.role as string | undefined;
+    const role = user?.role ?? (clerkUser?.unsafeMetadata?.role as string | undefined);
     if (role === 'admin') { router.replace('/admin/dashboard'); return; }
     if (role === 'professeur') { router.replace('/prof/dashboard'); return; }
     if (role === 'pending_prof') { router.replace('/pending-approval'); return; }

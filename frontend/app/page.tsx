@@ -646,7 +646,7 @@ export default function Home() {
           </div>
           <motion.div className="mt-10 text-center" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
             <p className="text-slate-500 text-sm mb-4">Vous avez une autre question ?</p>
-            <a href="mailto:support@reussirtcf.ca" className="inline-flex items-center gap-2 bg-white border-2 border-red-200 text-red-600 font-bold px-6 py-3 rounded-xl hover:bg-red-50 transition-colors text-sm">
+            <a href="mailto:support@reussir-tcf.ca" className="inline-flex items-center gap-2 bg-white border-2 border-red-200 text-red-600 font-bold px-6 py-3 rounded-xl hover:bg-red-50 transition-colors text-sm">
               📧 Contacter le support
             </a>
           </motion.div>
@@ -882,7 +882,7 @@ export default function Home() {
             </ul>
             <div className="pt-2">
               <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Contact</div>
-              <a href="mailto:support@reussirtcf.ca" className="text-xs text-red-400 hover:text-red-300 transition-colors">support@reussirtcf.ca</a>
+              <a href="mailto:support@reussir-tcf.ca" className="text-xs text-red-400 hover:text-red-300 transition-colors">support@reussir-tcf.ca</a>
             </div>
           </div>
         </div>

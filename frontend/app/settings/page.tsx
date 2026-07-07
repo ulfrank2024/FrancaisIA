@@ -269,7 +269,7 @@ export default function SettingsPage() {
                 },
                 {
                   icon: '💬', label: 'Support', sub: 'Nous contacter',
-                  action: () => window.open('mailto:contact@reussirtcf.ca', '_blank'),
+                  action: () => window.open('mailto:contact@reussir-tcf.ca', '_blank'),
                 },
               ].map((item, i) => (
                 <motion.button key={i} whileHover={{ y: -2 }} onClick={item.action}

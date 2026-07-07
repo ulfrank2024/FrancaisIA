@@ -7,7 +7,6 @@ import Spinner from '../../../components/Spinner';
 import { useAuth } from '../../../lib/auth-context';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-function isAdmin(id: string) { return id === process.env.NEXT_PUBLIC_ADMIN_USER_ID; }
 
 async function getClerkToken(): Promise<string | null> {
   if (typeof window === 'undefined') return null;
@@ -37,11 +36,11 @@ export default function SondagesPage() {
   const [filter, setFilter]   = useState<string>('');
 
   useEffect(() => {
-    if (!authLoading && user && !isAdmin(user.id)) router.push('/dashboard');
+    if (!authLoading && user && user.role !== undefined && user.role !== 'admin') router.push('/dashboard');
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (!user || !isAdmin(user.id)) return;
+    if (!user || !(user.role === 'admin')) return;
     (async () => {
       const token = await getClerkToken();
       const res = await fetch(`${BASE}/api/admin/surveys`, {

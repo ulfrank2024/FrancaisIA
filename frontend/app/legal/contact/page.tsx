@@ -33,7 +33,7 @@ export default function ContactPage() {
       if (!res.ok) throw new Error('Erreur serveur');
       setSent(true);
     } catch {
-      setError('Une erreur est survenue. Réessayez ou écrivez à support@reussirtcf.ca');
+      setError('Une erreur est survenue. Réessayez ou écrivez à support@reussir-tcf.ca');
     } finally {
       setSending(false);
     }
@@ -51,7 +51,7 @@ export default function ContactPage() {
         {/* Canaux de contact */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { icon: '📧', title: 'Email', value: 'support@reussirtcf.ca', sub: 'Réponse sous 24h ouvrables', color: 'bg-indigo-50 border-indigo-100' },
+            { icon: '📧', title: 'Email', value: 'support@reussir-tcf.ca', sub: 'Réponse sous 24h ouvrables', color: 'bg-indigo-50 border-indigo-100' },
             { icon: '💬', title: 'WhatsApp', value: '+1 (514) 000-0000', sub: 'Lun–Ven · 9h–18h EST', color: 'bg-green-50 border-green-100' },
             { icon: '🌍', title: 'Communauté', value: 'Groupe Facebook', sub: 'Diaspora Camerounaise TCF', color: 'bg-sky-50 border-sky-100' },
           ].map(c => (
@@ -186,7 +186,7 @@ export default function ContactPage() {
             {[
               { q: 'Comment annuler mon abonnement ?', a: 'Dans votre compte → Paramètres → Abonnement → Annuler. L\'accès reste actif jusqu\'à la fin de la période payée.' },
               { q: 'Mes résultats TCF sur la plateforme sont-ils officiels ?', a: 'Non. RéussirTCF propose une estimation entraînante. Seul le test officiel TCF Canada (France Éducation International) est reconnu par IRCC.' },
-              { q: 'Comment obtenir mon remboursement sous 14 jours ?', a: 'Envoyez un email à refund@reussirtcf.ca avec votre nom et la date de paiement. Traitement sous 5-10 jours ouvrables.' },
+              { q: 'Comment obtenir mon remboursement sous 14 jours ?', a: 'Envoyez un email à refund@reussir-tcf.ca avec votre nom et la date de paiement. Traitement sous 5-10 jours ouvrables.' },
               { q: 'Sophie IA utilise-t-elle mes données pour s\'entraîner ?', a: 'Non. Vos textes envoyés à Sophie sont traités par l\'API Claude (Anthropic) uniquement pour la correction, sans stockage permanent.' },
             ].map(item => (
               <details key={item.q} className="group bg-slate-50 border border-slate-200 rounded-xl">

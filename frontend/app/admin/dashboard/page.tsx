@@ -8,9 +8,6 @@ import Spinner from '../../../components/Spinner';
 import { adminApi, AdminStats, AdminQuestion, AdminUser, BankQuestion, BankQuestionInput, BankSession, BankSessionInput, EeSerieRaw, EoSerieRaw, CeSerieRaw } from '../../../lib/admin-api';
 import { useAuth } from '../../../lib/auth-context';
 
-function isAdmin(userId: string) {
-  return userId === process.env.NEXT_PUBLIC_ADMIN_USER_ID;
-}
 
 function renderBold(text: string): React.ReactNode {
   const parts = text.split(/\*\*(.*?)\*\*/g);
@@ -108,6 +105,7 @@ export default function AdminDashboard() {
   // ── État banque CE ───────────────────────────────────────────
   const [bankQuestions, setBankQuestions] = useState<BankQuestion[]>([]);
   const [bankLoading, setBankLoading]     = useState(false);
+  const [bankLoaded, setBankLoaded]       = useState(false);
   const [showModal, setShowModal]         = useState(false);
   const [editingQ, setEditingQ]           = useState<BankQuestion | null>(null);
   const [form, setForm]                   = useState<BankQuestionInput>(EMPTY_FORM);
@@ -193,12 +191,12 @@ export default function AdminDashboard() {
   // ── Auth guard ───────────────────────────────────────────────
   useEffect(() => {
     if (!authLoading && !user) { router.push('/login'); return; }
-    if (!authLoading && user && !isAdmin(user.id)) { router.push('/dashboard'); return; }
+    if (!authLoading && user && user.role !== undefined && user.role !== 'admin') { router.push('/dashboard'); return; }
   }, [user, authLoading, router]);
 
   // ── Chargement initial ───────────────────────────────────────
   useEffect(() => {
-    if (!user || !isAdmin(user.id)) return;
+    if (!user || !(user.role === 'admin')) return;
     (async () => {
       const [statsData, qData] = await Promise.allSettled([
         adminApi.stats(),
@@ -217,14 +215,14 @@ export default function AdminDashboard() {
       const data = await adminApi.bank.list({ section: 'CE' });
       setBankQuestions(data.questions);
     } catch {}
-    finally { setBankLoading(false); }
+    finally { setBankLoading(false); setBankLoaded(true); }
   }, []);
 
   useEffect(() => {
-    if (adminTab === 'banque-ce' && bankQuestions.length === 0 && !bankLoading) {
+    if (adminTab === 'banque-ce' && !bankLoaded && !bankLoading) {
       loadBank();
     }
-  }, [adminTab, bankQuestions.length, bankLoading, loadBank]);
+  }, [adminTab, bankLoaded, bankLoading, loadBank]);
 
   // ── Chargement banque CO ─────────────────────────────────────
   const loadBankCo = useCallback(async () => {
@@ -276,10 +274,10 @@ export default function AdminDashboard() {
 
   // ── Chargement banque CE quand la formation CE est ouverte ──
   useEffect(() => {
-    if (adminTab === 'formation' && formationSection === 'CE' && bankQuestions.length === 0 && !bankLoading) {
+    if (adminTab === 'formation' && formationSection === 'CE' && !bankLoaded && !bankLoading) {
       loadBank();
     }
-  }, [adminTab, formationSection, bankQuestions.length, bankLoading, loadBank]);
+  }, [adminTab, formationSection, bankLoaded, bankLoading, loadBank]);
 
   // ── Chargement banque CO quand la formation CO est ouverte ──
   useEffect(() => {
@@ -299,8 +297,8 @@ export default function AdminDashboard() {
         let localCo = bankCoQuestions;
 
         const tasks: Promise<void>[] = [];
-        if (bankQuestions.length === 0 && !bankLoading) {
-          tasks.push(adminApi.bank.list({ section: 'CE' }).then(d => { setBankQuestions(d.questions); localCe = d.questions; }).catch(err => { console.error('[Formation] Chargement banque CE échoué:', err); }));
+        if (!bankLoaded && !bankLoading) {
+          tasks.push(adminApi.bank.list({ section: 'CE' }).then(d => { setBankQuestions(d.questions); setBankLoaded(true); localCe = d.questions; }).catch(err => { console.error('[Formation] Chargement banque CE échoué:', err); }));
         }
         if (bankCoQuestions.length === 0 && !bankCoLoading) {
           tasks.push(adminApi.bank.list({ section: 'CO' }).then(d => { setBankCoQuestions(d.questions); setBankCoLoaded(true); localCo = d.questions; }).catch(err => { console.error('[Formation] Chargement banque CO échoué:', err); }));
@@ -2272,7 +2270,7 @@ export default function AdminDashboard() {
                   </label>
                   <input type="url" value={coForm.audioUrl ?? ''}
                     onChange={e => setCoForm(f => ({ ...f, audioUrl: e.target.value || null }))}
-                    placeholder="https://cdn.reussirtcf.ca/audio/co-s1-q01.mp3"
+                    placeholder="https://cdn.reussir-tcf.ca/audio/co-s1-q01.mp3"
                     className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-600 rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:border-sky-500" />
                 </div>
 
@@ -2283,7 +2281,7 @@ export default function AdminDashboard() {
                   </label>
                   <input type="url" value={coForm.imageUrl ?? ''}
                     onChange={e => setCoForm(f => ({ ...f, imageUrl: e.target.value || null }))}
-                    placeholder="https://cdn.reussirtcf.ca/img/co-s1-q01.jpg"
+                    placeholder="https://cdn.reussir-tcf.ca/img/co-s1-q01.jpg"
                     className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-600 rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:border-sky-500" />
                 </div>
 

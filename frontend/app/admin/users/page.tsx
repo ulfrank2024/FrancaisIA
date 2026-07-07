@@ -7,7 +7,6 @@ import Spinner from '../../../components/Spinner';
 import { adminApi, AdminUser } from '../../../lib/admin-api';
 import { useAuth } from '../../../lib/auth-context';
 
-function isAdmin(id: string) { return id === process.env.NEXT_PUBLIC_ADMIN_USER_ID; }
 
 const ROLE_META: Record<string, { label: string; color: string; icon: string }> = {
   admin:     { label: 'Admin',     icon: '⚡', color: 'bg-yellow-900/60 text-yellow-400 border-yellow-800' },
@@ -37,7 +36,7 @@ export default function AdminUsersPage() {
   const [revokingId, setRevokingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && user && !isAdmin(user.id)) router.push('/dashboard');
+    if (!authLoading && user && user.role !== undefined && user.role !== 'admin') router.push('/dashboard');
   }, [user, authLoading, router]);
 
   const load = () => {
@@ -45,7 +44,7 @@ export default function AdminUsersPage() {
     adminApi.users().then(r => setUsers(r.users)).catch(() => {}).finally(() => setLoading(false));
   };
 
-  useEffect(() => { if (user && isAdmin(user.id)) load(); }, [user]);
+  useEffect(() => { if (user && user.role === 'admin') load(); }, [user]);
 
   async function handleGrant(u: AdminUser) {
     setGrantingId(u.id);

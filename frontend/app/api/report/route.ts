@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     await sendBrevo({
       to:      adminEmail,
       ...(email ? { replyTo: email } : {}),
-      from:    { name: 'RéussirTCF Support', email: 'support@reussirtcf.ca' },
+      from:    { name: 'RéussirTCF Support', email: 'support@reussir-tcf.ca' },
       subject: `[Signalement] ${label}`,
       html: `
         <h2 style="color:#111827;margin:0 0 20px">🚨 Nouveau signalement</h2>

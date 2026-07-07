@@ -8,9 +8,6 @@ import Spinner from '../../../components/Spinner';
 import { adminApi, BankQuestion } from '../../../lib/admin-api';
 import { useAuth } from '../../../lib/auth-context';
 
-function isAdmin(userId: string) {
-  return userId === process.env.NEXT_PUBLIC_ADMIN_USER_ID;
-}
 
 const LEVEL_COLORS: Record<string, string> = {
   A1: 'bg-emerald-100 text-emerald-700',
@@ -40,7 +37,7 @@ function PreviewCEInner() {
 
   useEffect(() => {
     if (!authLoading && !user) { router.push('/login'); return; }
-    if (!authLoading && user && !isAdmin(user.id)) { router.push('/dashboard'); return; }
+    if (!authLoading && user && user.role !== undefined && user.role !== 'admin') { router.push('/dashboard'); return; }
   }, [user, authLoading, router]);
 
   const load = useCallback(async () => {
@@ -64,7 +61,7 @@ function PreviewCEInner() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (user && isAdmin(user.id)) load();
+    if (user && user.role === 'admin') load();
   }, [user, load]);
 
   // Reset "show answer" quand on change de question
