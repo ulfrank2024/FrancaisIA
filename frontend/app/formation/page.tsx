@@ -43,7 +43,8 @@ export default function FormationPage() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
     const load = async () => {
       setLoading(true);
       setError(null);
@@ -74,12 +75,61 @@ export default function FormationPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-slate-500">Connecte-toi pour accéder aux séries de formation.</p>
-          <Link href="/login" className="inline-block px-6 py-3 bg-indigo-600 rounded-xl font-bold text-white hover:bg-indigo-500 transition-colors">
-            Se connecter
-          </Link>
+      <div className="min-h-screen bg-slate-50">
+        {/* Hero */}
+        <div className="bg-white border-b border-slate-100">
+          <div className="max-w-4xl mx-auto px-4 py-12 sm:py-16 text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold mb-5">
+              ✍️ Expression Écrite — TCF Canada
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4 leading-tight">
+              Prépare ton Expression Écrite<br />TCF Canada
+            </h1>
+            <p className="text-slate-500 text-base sm:text-lg max-w-xl mx-auto mb-8">
+              Épreuves officielles reproduites à l&apos;identique. 3 tâches par série (message court, narration, argumentatif) avec correction IA instantanée et calcul NCLC.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/register" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl transition-colors shadow-sm">
+                Commencer gratuitement →
+              </Link>
+              <Link href="/login" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors">
+                Se connecter
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* 3 tâches */}
+        <div className="max-w-4xl mx-auto px-4 py-10">
+          <h2 className="text-lg font-black text-slate-800 mb-5 text-center">Les 3 tâches de l&apos;épreuve EE TCF Canada</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { icon: '✉️', label: 'Tâche 1 — Message court', words: '60–120 mots', duration: '10 min', desc: 'Rédiger un message informel ou formel en réponse à une situation courante.', color: 'border-emerald-200 bg-emerald-50', badge: 'bg-emerald-100 text-emerald-700' },
+              { icon: '📖', label: 'Tâche 2 — Narration', words: '120–150 mots', duration: '20 min', desc: 'Décrire et raconter un événement ou une expérience personnelle avec structure.', color: 'border-sky-200 bg-sky-50', badge: 'bg-sky-100 text-sky-700' },
+              { icon: '💬', label: 'Tâche 3 — Argumentatif', words: '120–180 mots', duration: '30 min', desc: 'Exprimer son opinion et défendre un point de vue sur un sujet de société.', color: 'border-violet-200 bg-violet-50', badge: 'bg-violet-100 text-violet-700' },
+            ].map(t => (
+              <div key={t.label} className={`rounded-2xl border p-5 ${t.color}`}>
+                <div className="text-2xl mb-3">{t.icon}</div>
+                <div className="font-black text-slate-800 text-sm mb-2">{t.label}</div>
+                <p className="text-slate-500 text-xs leading-relaxed mb-3">{t.desc}</p>
+                <div className="flex gap-2">
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${t.badge}`}>{t.words}</span>
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${t.badge}`}>{t.duration}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA bas */}
+        <div className="max-w-4xl mx-auto px-4 pb-16 text-center">
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-8 text-white">
+            <p className="font-black text-xl mb-2">2 épreuves complètes gratuites</p>
+            <p className="text-emerald-100 text-sm mb-5">Inscris-toi en 30 secondes — aucune carte bancaire requise</p>
+            <Link href="/register" className="inline-block bg-white text-emerald-700 font-black px-8 py-3 rounded-xl hover:bg-emerald-50 transition-colors shadow">
+              Créer mon compte →
+            </Link>
+          </div>
         </div>
       </div>
     );

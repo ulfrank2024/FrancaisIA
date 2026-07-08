@@ -42,7 +42,8 @@ export default function FormationEoPage() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
     const load = async () => {
       setLoading(true);
       setError(null);
@@ -73,12 +74,58 @@ export default function FormationEoPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-slate-500">Connecte-toi pour accéder aux séries de formation.</p>
-          <Link href="/login" className="inline-block px-6 py-3 bg-indigo-600 rounded-xl font-bold text-white hover:bg-indigo-500 transition-colors">
-            Se connecter
-          </Link>
+      <div className="min-h-screen bg-slate-50">
+        {/* Hero */}
+        <div className="bg-white border-b border-slate-100">
+          <div className="max-w-4xl mx-auto px-4 py-12 sm:py-16 text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold mb-5">
+              🎤 Expression Orale — TCF Canada
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4 leading-tight">
+              Prépare ton Expression Orale<br />TCF Canada
+            </h1>
+            <p className="text-slate-500 text-base sm:text-lg max-w-xl mx-auto mb-8">
+              Sujets officiels reproduits à l&apos;identique. 3 tâches de production orale par série avec feedback IA personnalisé et grille d&apos;évaluation NCLC officielle.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/register" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl transition-colors shadow-sm">
+                Commencer gratuitement →
+              </Link>
+              <Link href="/login" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors">
+                Se connecter
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* 3 tâches EO */}
+        <div className="max-w-4xl mx-auto px-4 py-10">
+          <h2 className="text-lg font-black text-slate-800 mb-5 text-center">Les 3 tâches de l&apos;épreuve EO TCF Canada</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { icon: '🗣️', label: 'Tâche 1 — Monologue', desc: 'Présenter un sujet de façon structurée pendant 2-3 minutes à partir d\'une image ou d\'un thème.', color: 'border-rose-200 bg-rose-50', badge: 'bg-rose-100 text-rose-700', duration: '2–3 min' },
+              { icon: '💬', label: 'Tâche 2 — Interaction', desc: 'Échanger avec l\'examinateur, demander et donner des informations dans une situation de la vie courante.', color: 'border-orange-200 bg-orange-50', badge: 'bg-orange-100 text-orange-700', duration: '3–4 min' },
+              { icon: '🎯', label: 'Tâche 3 — Point de vue', desc: 'Exprimer et défendre son opinion sur un sujet de société face à l\'examinateur.', color: 'border-pink-200 bg-pink-50', badge: 'bg-pink-100 text-pink-700', duration: '3–4 min' },
+            ].map(t => (
+              <div key={t.label} className={`rounded-2xl border p-5 ${t.color}`}>
+                <div className="text-2xl mb-3">{t.icon}</div>
+                <div className="font-black text-slate-800 text-sm mb-2">{t.label}</div>
+                <p className="text-slate-500 text-xs leading-relaxed mb-3">{t.desc}</p>
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${t.badge}`}>{t.duration}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA bas */}
+        <div className="max-w-4xl mx-auto px-4 pb-16 text-center">
+          <div className="bg-gradient-to-r from-rose-600 to-pink-600 rounded-2xl p-8 text-white">
+            <p className="font-black text-xl mb-2">2 épreuves complètes gratuites</p>
+            <p className="text-rose-100 text-sm mb-5">Inscris-toi en 30 secondes — aucune carte bancaire requise</p>
+            <Link href="/register" className="inline-block bg-white text-rose-700 font-black px-8 py-3 rounded-xl hover:bg-rose-50 transition-colors shadow">
+              Créer mon compte →
+            </Link>
+          </div>
         </div>
       </div>
     );
