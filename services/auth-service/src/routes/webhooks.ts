@@ -89,13 +89,13 @@ router.post('/clerk', async (req: Request, res: Response): Promise<void> => {
             </tr>
           </table>
 
-          <a href="${process.env.APP_URL || 'https://frontend-iota-seven-15.vercel.app'}/dashboard"
+          <a href="${process.env.APP_URL || 'https://reussir-tcf.ca'}/dashboard"
              style="display:inline-block;background:#dc2626;color:#ffffff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:900;font-size:15px">
             Commencer à pratiquer →
           </a>
 
           <p style="color:#9ca3af;font-size:12px;margin-top:24px">
-            Des questions ? Écris-nous à <a href="mailto:${process.env.ADMIN_EMAIL || 'frranklinlontsi99@gmail.com'}" style="color:#dc2626">${process.env.ADMIN_EMAIL || 'frranklinlontsi99@gmail.com'}</a>
+            Des questions ? Écris-nous à <a href="mailto:${process.env.ADMIN_EMAIL || 'support@reussir-tcf.ca'}" style="color:#dc2626">${process.env.ADMIN_EMAIL || 'support@reussir-tcf.ca'}</a>
           </p>
           `
         ).catch(err => console.error('[Brevo] Bienvenue:', err));
