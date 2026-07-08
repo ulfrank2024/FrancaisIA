@@ -49,6 +49,11 @@ router.post('/clerk', async (req: Request, res: Response): Promise<void> => {
       e => e.id === data.primary_email_address_id
     )?.email_address ?? data.email_addresses[0]?.email_address;
 
+    if (!primaryEmail) {
+      res.json({ received: true, skipped: 'no_email' });
+      return;
+    }
+
     const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ') || 'Utilisateur';
 
     if (type === 'user.created') {
