@@ -7,6 +7,8 @@ const isPublicRoute = createRouteMatcher([
   '/register(.*)',
   '/legal(.*)',
   '/pricing(.*)',
+  '/formation(.*)',
+  '/formation-eo(.*)',
   '/onboarding',
   '/redirect',
   '/join',
