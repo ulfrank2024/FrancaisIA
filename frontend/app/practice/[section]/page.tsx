@@ -720,19 +720,23 @@ function SerieCard({ num, isFree, isFirst, isPaid, color, onStart, cardLabel, ca
     );
   }
 
-  // Série verrouillée — utilisateur payant : contenu en préparation
+  // Série accessible — utilisateur abonné payant
   if (isPaid) {
     return (
-      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 opacity-60">
+      <motion.div whileHover={{ y: -3, scale: 1.02 }}
+        className="bg-white border-2 border-slate-100 hover:border-red-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+        onClick={() => onStart(num)}>
         <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center text-slate-400 text-sm font-black">{num}</div>
-          <span className="text-xs font-bold bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full">Bientôt</span>
+          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white text-sm font-black shadow`}>{num}</div>
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">Premium</span>
         </div>
-        <div className="font-black text-slate-500 text-sm mb-0.5">{cardLabel} {num}</div>
-        <div className="text-xs text-slate-400 mb-1">Contenu en préparation</div>
+        <div className="font-black text-slate-800 text-sm mb-0.5">{cardLabel} {num}</div>
+        <div className="text-xs text-slate-400 capitalize mb-1">{CURRENT_MONTH}</div>
         <div className="text-xs text-slate-400">{cardDesc}</div>
-        <div className="mt-3 text-xs text-slate-400 flex items-center gap-1">⏳ Bientôt disponible</div>
-      </div>
+        <div className="mt-3 text-xs font-bold text-red-600 group-hover:text-red-700 flex items-center gap-1">
+          Commencer <span className="group-hover:translate-x-1 transition-transform">→</span>
+        </div>
+      </motion.div>
     );
   }
 
@@ -764,7 +768,7 @@ function SerieCard({ num, isFree, isFirst, isPaid, color, onStart, cardLabel, ca
 function PracticePageInner() {
   const { section } = useParams<{ section: string }>();
   const { user, loading: authLoading, getToken, userPlan } = useAuth();
-  const isPaid = userPlan !== 'free';
+  const isPaid = userPlan !== 'free' || user?.role === 'admin';
   const router = useRouter();
   const searchParams = useSearchParams();
   const sectionCode = section?.toUpperCase() as 'CO' | 'CE' | 'EE' | 'EO';
