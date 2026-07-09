@@ -23,7 +23,6 @@ router.use(requireAdmin);
 router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
   const [
     totalResults,
-    uniqueUsers,
     pendingRequests,
     approvedProfs,
     totalClasses,
@@ -31,9 +30,9 @@ router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
     recentSessions,
     sessionsBySection,
     avgScores,
+    clerkUsers,
   ] = await Promise.all([
     prisma.result.count(),
-    prisma.result.findMany({ distinct: ['userId'], select: { userId: true } }),
     prisma.professorRequest.count({ where: { status: 'pending' } }),
     prisma.professorRequest.count({ where: { status: 'approved' } }),
     prisma.class.count(),
@@ -41,10 +40,11 @@ router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
     prisma.result.findMany({ orderBy: { createdAt: 'desc' }, take: 10, select: { userId: true, section: true, score: true, correct: true, total: true, durationS: true, createdAt: true } }),
     prisma.result.groupBy({ by: ['section'], _count: true }),
     prisma.result.groupBy({ by: ['section'], _avg: { score: true } }),
+    clerk.users.getCount(),
   ]);
 
   res.json({
-    totalUsers: uniqueUsers.length,
+    totalUsers: clerkUsers,
     totalSessions: totalResults,
     pendingProfRequests: pendingRequests,
     approvedProfessors: approvedProfs,

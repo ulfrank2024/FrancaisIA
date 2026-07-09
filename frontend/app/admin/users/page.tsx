@@ -15,9 +15,12 @@ const ROLE_META: Record<string, { label: string; color: string; icon: string }> 
 };
 
 const PLAN_META: Record<string, { label: string; color: string; price: string }> = {
-  free:   { label: 'Gratuit', color: 'bg-slate-800 text-slate-400 border-slate-700', price: '0 $' },
-  pro:    { label: 'Pro',     color: 'bg-indigo-900/60 text-indigo-400 border-indigo-800', price: '9,99 $/mois' },
-  annual: { label: 'Annuel', color: 'bg-emerald-900/60 text-emerald-400 border-emerald-800', price: '79,99 $/an' },
+  free:   { label: 'Gratuit', color: 'bg-slate-800 text-slate-400 border-slate-700',             price: '0 $' },
+  bronze: { label: 'Bronze',  color: 'bg-orange-900/60 text-orange-400 border-orange-800',       price: '14,99 $/mois' },
+  silver: { label: 'Silver',  color: 'bg-indigo-900/60 text-indigo-400 border-indigo-800',       price: '29,99 $/mois' },
+  gold:   { label: 'Gold',    color: 'bg-yellow-900/60 text-yellow-400 border-yellow-800',       price: '49,99 $/2 mois' },
+  pro:    { label: 'Pro',     color: 'bg-indigo-900/60 text-indigo-400 border-indigo-800',       price: '9,99 $/mois' },
+  annual: { label: 'Annuel',  color: 'bg-emerald-900/60 text-emerald-400 border-emerald-800',    price: '79,99 $/an' },
 };
 
 type SortKey = 'recent' | 'oldest' | 'name' | 'plan';

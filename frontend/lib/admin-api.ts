@@ -114,7 +114,7 @@ export type Subscription = {
   id: string;
   userId: string;
   email: string;
-  plan: 'free' | 'pro' | 'annual';
+  plan: 'free' | 'pro' | 'annual' | 'bronze' | 'silver' | 'gold';
   status: 'active' | 'cancelled' | 'expired';
   startedAt: string;
   expiresAt?: string;

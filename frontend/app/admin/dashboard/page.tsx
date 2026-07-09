@@ -198,12 +198,16 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!user || !(user.role === 'admin')) return;
     (async () => {
-      const [statsData, qData] = await Promise.allSettled([
+      const [statsData, qData, eeData, eoData] = await Promise.allSettled([
         adminApi.stats(),
         adminApi.questions(),
+        adminApi.sessions.list({ section: 'EE' }),
+        adminApi.sessions.list({ section: 'EO' }),
       ]);
       if (statsData.status === 'fulfilled') setStats(statsData.value);
       if (qData.status === 'fulfilled') setQuestions(qData.value.questions);
+      if (eeData.status === 'fulfilled') { setEeSessions(eeData.value.sessions); setEeLoaded(true); }
+      if (eoData.status === 'fulfilled') { setEoSessions(eoData.value.sessions); setEoLoaded(true); }
       setLoading(false);
     })();
   }, [user]);
@@ -214,7 +218,7 @@ export default function AdminDashboard() {
     try {
       const data = await adminApi.bank.list({ section: 'CE' });
       setBankQuestions(data.questions);
-    } catch {}
+    } catch (err) { console.error('[Admin] Erreur banque CE:', err); }
     finally { setBankLoading(false); setBankLoaded(true); }
   }, []);
 
@@ -230,7 +234,7 @@ export default function AdminDashboard() {
     try {
       const data = await adminApi.bank.list({ section: 'CO' });
       setBankCoQuestions(data.questions);
-    } catch {}
+    } catch (err) { console.error('[Admin] Erreur banque CO:', err); }
     finally { setBankCoLoading(false); setBankCoLoaded(true); }
   }, []);
 
@@ -870,7 +874,12 @@ export default function AdminDashboard() {
   }
 
   // ── Calculs globaux ───────────────────────────────────────────
-  const qBySection = questions.reduce<Record<string, number>>((acc, q) => { acc[q.section] = (acc[q.section] ?? 0) + 1; return acc; }, {});
+  const qBySection: Record<string, number> = {
+    ...questions.reduce<Record<string, number>>((acc, q) => { acc[q.section] = (acc[q.section] ?? 0) + 1; return acc; }, {}),
+    CO: bankCoQuestions.length || questions.filter(q => q.section === 'CO').length,
+    EE: eeSessions.length,
+    EO: eoSessions.length,
+  };
   const qByLevel = questions.reduce<Record<string, number>>((acc, q) => { acc[q.level] = (acc[q.level] ?? 0) + 1; return acc; }, {});
   const subTotal = stats ? Object.values(stats.subscriptions).reduce((a, b) => a + b, 0) : 0;
   const planLabels: Record<string, string> = { free: 'Gratuit', bronze: 'Bronze', silver: 'Silver', gold: 'Gold', pro: 'Pro', annual: 'Annuel' };

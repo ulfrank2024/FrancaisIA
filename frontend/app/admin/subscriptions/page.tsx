@@ -10,9 +10,9 @@ import { useAuth } from '../../../lib/auth-context';
 
 const PLAN_META: Record<string, { label: string; color: string; badge: string; mthPrice: number }> = {
   free:   { label: 'Gratuit', color: 'from-slate-500 to-slate-600',     badge: 'bg-slate-800 text-slate-400 border-slate-700',           mthPrice: 0 },
-  bronze: { label: 'Bronze',  color: 'from-orange-400 to-amber-500',   badge: 'bg-orange-900/60 text-orange-400 border-orange-800',     mthPrice: 0 },
+  bronze: { label: 'Bronze',  color: 'from-orange-400 to-amber-500',   badge: 'bg-orange-900/60 text-orange-400 border-orange-800',     mthPrice: 14.99 },
   silver: { label: 'Silver',  color: 'from-indigo-500 to-violet-500',  badge: 'bg-indigo-900/60 text-indigo-400 border-indigo-800',     mthPrice: 29.99 },
-  gold:   { label: 'Gold',    color: 'from-yellow-400 to-amber-400',   badge: 'bg-yellow-900/60 text-yellow-400 border-yellow-800',     mthPrice: 0 },
+  gold:   { label: 'Gold',    color: 'from-yellow-400 to-amber-400',   badge: 'bg-yellow-900/60 text-yellow-400 border-yellow-800',     mthPrice: 49.99 / 2 },
   pro:    { label: 'Pro (legacy)',   color: 'from-indigo-500 to-violet-500', badge: 'bg-indigo-900/60 text-indigo-400 border-indigo-800', mthPrice: 9.99 },
   annual: { label: 'Annuel (legacy)', color: 'from-emerald-500 to-teal-500', badge: 'bg-emerald-900/60 text-emerald-400 border-emerald-800', mthPrice: 79.99 / 12 },
 };
@@ -76,11 +76,15 @@ export default function AdminSubscriptionsPage() {
   );
 
   // Métriques financières
-  const active     = subs.filter(s => s.status === 'active');
-  const proPaid    = active.filter(s => s.plan === 'pro');
-  const annualPaid = active.filter(s => s.plan === 'annual');
-  const mrr        = proPaid.length * 9.99 + annualPaid.length * (79.99 / 12);
-  const arr        = mrr * 12;
+  const active      = subs.filter(s => s.status === 'active');
+  const bronzePaid  = active.filter(s => s.plan === 'bronze');
+  const silverPaid  = active.filter(s => s.plan === 'silver');
+  const goldPaid    = active.filter(s => s.plan === 'gold');
+  const proPaid     = active.filter(s => s.plan === 'pro');
+  const annualPaid  = active.filter(s => s.plan === 'annual');
+  const mrr = bronzePaid.length * 14.99 + silverPaid.length * 29.99 + goldPaid.length * (49.99 / 2)
+            + proPaid.length * 9.99 + annualPaid.length * (79.99 / 12);
+  const arr = mrr * 12;
   const expiringIn7 = active.filter(s => s.expiresAt && daysUntil(s.expiresAt) <= 7 && daysUntil(s.expiresAt) >= 0);
   const failed     = subs.filter(s => (s.status as string) === 'payment_failed');
 
@@ -136,10 +140,10 @@ export default function AdminSubscriptionsPage() {
         {/* KPIs revenus */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: 'MRR',             value: mrr.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }),    icon: '📈', color: 'from-indigo-400 to-violet-500', sub: 'Revenu mensuel récurrent' },
-            { label: 'ARR',             value: arr.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }),    icon: '🏆', color: 'from-emerald-400 to-teal-500', sub: 'Revenu annuel récurrent' },
-            { label: 'Pro actifs',      value: proPaid.length,    icon: '💎', color: 'from-violet-400 to-purple-500', sub: `${(9.99 * proPaid.length).toFixed(0)} $/mois` },
-            { label: 'Annuels actifs',  value: annualPaid.length, icon: '🌟', color: 'from-amber-400 to-orange-500', sub: `${annualPaid.length} × 79,99 $` },
+            { label: 'MRR',            value: mrr.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }), icon: '📈', color: 'from-indigo-400 to-violet-500', sub: 'Revenu mensuel récurrent' },
+            { label: 'ARR',            value: arr.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }), icon: '🏆', color: 'from-emerald-400 to-teal-500', sub: 'Revenu annuel récurrent' },
+            { label: 'Bronze actifs',  value: bronzePaid.length,  icon: '🥉', color: 'from-orange-400 to-amber-500', sub: `${(14.99 * bronzePaid.length).toFixed(0)} $/mois` },
+            { label: 'Silver + Gold',  value: silverPaid.length + goldPaid.length, icon: '🥇', color: 'from-yellow-400 to-amber-500', sub: `${(silverPaid.length * 29.99 + goldPaid.length * 24.99).toFixed(0)} $/mois` },
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
               className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
@@ -154,7 +158,7 @@ export default function AdminSubscriptionsPage() {
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
           <h2 className="text-sm font-black text-slate-300 mb-4">Répartition des plans</h2>
           <div className="space-y-3">
-            {(['pro', 'annual', 'free'] as const).map(plan => {
+            {(['bronze', 'silver', 'gold', 'free'] as const).map(plan => {
               const count = active.filter(s => s.plan === plan).length;
               const total = active.length || 1;
               const pct   = Math.round((count / total) * 100);
