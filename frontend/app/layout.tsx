@@ -23,11 +23,18 @@ export const metadata: Metadata = {
     title: 'RéussirTCF — Préparation TCF Canada en ligne | Examens simulés & IA',
     description: 'Prépare et réussis ton TCF Canada en ligne. Examens simulés, corrections IA instantanées, calcul NCLC officiel. La plateforme #1 de la diaspora africaine au Canada.',
     locale: 'fr_CA',
+    images: [{
+      url: `${SITE_URL}/og-image.png`,
+      width: 1200,
+      height: 630,
+      alt: 'RéussirTCF — Préparation TCF Canada en ligne',
+    }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'RéussirTCF — Préparation TCF Canada en ligne',
     description: 'Examens simulés, corrections IA, calcul NCLC. La plateforme de la diaspora africaine au Canada.',
+    images: [`${SITE_URL}/og-image.png`],
   },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
   icons: {
