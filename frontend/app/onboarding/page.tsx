@@ -24,9 +24,18 @@ export default function OnboardingPage() {
         return;
       }
 
-      await user.update({
-        unsafeMetadata: { ...meta, role: 'apprenant', completedOnboarding: true },
-      }).catch(() => {});
+      // Attribuer le parrainage ambassadeur si un code est stocké
+      const refCode = localStorage.getItem('tcf_ref');
+      if (refCode) {
+        fetch('/api/ref/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refCode }),
+        }).catch(() => {});
+        localStorage.removeItem('tcf_ref');
+      }
+
+      await fetch('/api/onboarding/complete', { method: 'POST' }).catch(() => {});
 
       setDone(true);
       setTimeout(() => router.replace('/dashboard'), 2000);

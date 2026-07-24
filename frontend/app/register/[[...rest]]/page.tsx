@@ -1,7 +1,20 @@
 'use client';
+import { useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { SignUp } from '@clerk/nextjs';
+
+function RefCapture() {
+  const params = useSearchParams();
+  useEffect(() => {
+    const ref = params.get('ref');
+    if (ref && ref.length >= 3) {
+      localStorage.setItem('tcf_ref', ref.trim().toUpperCase());
+    }
+  }, [params]);
+  return null;
+}
 
 export default function RegisterPage() {
   return (
@@ -12,6 +25,8 @@ export default function RegisterPage() {
         <div className="w-1/2 bg-white" />
         <div className="w-1/4 bg-red-600" />
       </div>
+
+      <Suspense fallback={null}><RefCapture /></Suspense>
 
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
