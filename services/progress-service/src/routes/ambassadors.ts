@@ -225,6 +225,23 @@ router.patch('/profile/:userId', requireInternal, async (req: Request, res: Resp
 
 // ── Routes admin ─────────────────────────────────────────────────
 
+// GET /ambassadors/invitations — liste les invitations en attente
+router.get('/invitations', requireInternal, async (_req: Request, res: Response): Promise<void> => {
+  const invitations = await prisma.ambassadorInvitation.findMany({
+    where: { usedAt: null },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json({ invitations });
+});
+
+// DELETE /ambassadors/invitations/:id — annule une invitation
+router.delete('/invitations/:id', requireInternal, async (req: Request, res: Response): Promise<void> => {
+  const inv = await prisma.ambassadorInvitation.findUnique({ where: { id: req.params.id } });
+  if (!inv) { res.status(404).json({ error: 'Invitation introuvable' }); return; }
+  await prisma.ambassadorInvitation.delete({ where: { id: req.params.id } });
+  res.json({ ok: true });
+});
+
 // GET /ambassadors — liste tous les ambassadeurs
 router.get('/', requireInternal, async (_req: Request, res: Response): Promise<void> => {
   const ambassadors = await prisma.ambassador.findMany({
