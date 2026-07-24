@@ -350,4 +350,142 @@ router.patch('/professors/:userId/revoke', async (req: Request, res: Response): 
   res.json({ ok: true });
 });
 
+// ── Ambassadeurs ─────────────────────────────────────────────────
+
+const PLAN_PRICES: Record<string, number> = { bronze: 14.99, silver: 29.99, gold: 24.99, pro: 9.99, annual: 6.66 };
+const SITE_URL = (process.env.SITE_URL ?? 'https://reussir-tcf.ca').trim();
+
+async function sendInviteEmail(email: string, commissionPct: number, token: string): Promise<void> {
+  const inviteLink = `${SITE_URL}/ambassador/join?token=${token}`;
+  const textContent = `Bonjour,
+
+Je t'invite à rejoindre le programme ambassadeurs de RéussirTCF.
+
+Chaque fois qu'une personne que tu parraines s'abonne, tu reçois ${commissionPct}% de commission — payé via Interac.
+
+Pour activer ton espace ambassadeur, clique sur ce lien :
+${inviteLink}
+
+À bientôt,
+L'équipe RéussirTCF`;
+
+  const htmlContent = `<div style="font-family:Georgia,serif;max-width:520px;margin:0 auto;padding:32px 0;color:#1a1a1a;font-size:16px;line-height:1.7">
+<p style="margin:0 0 20px">Bonjour,</p>
+<p style="margin:0 0 20px">Je t'invite à rejoindre le programme ambassadeurs de <strong>RéussirTCF</strong>.</p>
+<p style="margin:0 0 20px">Chaque fois qu'une personne que tu parraines s'abonne, tu reçois <strong>${commissionPct}%</strong> de commission — payé via Interac.</p>
+<p style="margin:0 0 28px">Pour activer ton espace ambassadeur :</p>
+<p style="margin:0 0 28px"><a href="${inviteLink}" style="color:#dc2626;font-weight:bold">${inviteLink}</a></p>
+<p style="margin:0 0 6px">À bientôt,</p>
+<p style="margin:0;color:#555">L'équipe RéussirTCF</p>
+</div>`;
+
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key':      process.env.BREVO_API_KEY ?? '',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      sender:      { email: process.env.BREVO_FROM_EMAIL ?? 'noreply@reussir-tcf.ca', name: 'RéussirTCF' },
+      to:          [{ email }],
+      subject:     'Invitation à rejoindre RéussirTCF',
+      textContent,
+      htmlContent,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Brevo ${res.status}: ${body}`);
+  }
+}
+
+// GET /admin/ambassadors — liste
+router.get('/ambassadors', async (_req: Request, res: Response): Promise<void> => {
+  const list = await prisma.ambassador.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      commissions: { select: { amount: true, status: true } },
+      referrals:   { select: { status: true } },
+    },
+  });
+  res.json({
+    ambassadors: list.map(a => ({
+      id: a.id, code: a.code, fullName: a.fullName, email: a.email,
+      commissionPct: a.commissionPct, paymentInfo: a.paymentInfo, status: a.status, createdAt: a.createdAt,
+      totalReferrals: a.referrals.length,
+      subscribers:    a.referrals.filter(r => r.status === 'subscribed').length,
+      pendingAmount:  a.commissions.filter(c => c.status === 'pending').reduce((s, c) => s + c.amount, 0),
+      paidAmount:     a.commissions.filter(c => c.status === 'paid').reduce((s, c) => s + c.amount, 0),
+    })),
+  });
+});
+
+// POST /admin/ambassadors/invite — envoie une invitation par email
+router.post('/ambassadors/invite', async (req: Request, res: Response): Promise<void> => {
+  const schema = z.object({ email: z.string().email(), commissionPct: z.number().min(1).max(100).default(30) });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.errors[0].message }); return; }
+  const { email, commissionPct } = parsed.data;
+  const invitedBy = req.headers['x-user-id'] as string;
+
+  const existing = await prisma.ambassadorInvitation.findUnique({ where: { email } });
+  const newToken  = require('crypto').randomUUID() as string;
+  const invitation = existing
+    ? await prisma.ambassadorInvitation.update({
+        where: { email },
+        data: { commissionPct, invitedBy, token: newToken, usedAt: null },
+      })
+    : await prisma.ambassadorInvitation.create({ data: { email, commissionPct, invitedBy, token: newToken } });
+
+  try {
+    await sendInviteEmail(email, commissionPct, invitation.token);
+  } catch (err) {
+    console.error('[Invite email]', err);
+    res.status(500).json({ error: `Invitation créée mais email non envoyé : ${(err as Error).message}` });
+    return;
+  }
+
+  res.json({ ok: true, inviteLink: `${SITE_URL}/ambassador/join?token=${invitation.token}` });
+});
+
+// PATCH /admin/ambassadors/:id — modifier commission / statut
+router.patch('/ambassadors/:id', async (req: Request, res: Response): Promise<void> => {
+  const schema = z.object({
+    commissionPct: z.number().min(1).max(100).optional(),
+    status:        z.enum(['active', 'paused', 'inactive']).optional(),
+    paymentInfo:   z.string().optional(),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.errors[0].message }); return; }
+  const ambassador = await prisma.ambassador.update({ where: { id: req.params.id }, data: parsed.data });
+  res.json({ ambassador });
+});
+
+// POST /admin/ambassadors/pay/:ambassadorId — payer toutes les commissions en attente
+router.post('/ambassadors/pay/:ambassadorId', async (req: Request, res: Response): Promise<void> => {
+  const { note } = z.object({ note: z.string().optional() }).parse(req.body ?? {});
+  const result = await prisma.commission.updateMany({
+    where: { ambassadorId: req.params.ambassadorId, status: 'pending' },
+    data:  { status: 'paid', paidAt: new Date(), note: note ?? null },
+  });
+  res.json({ count: result.count });
+});
+
+// GET /admin/ambassadors/invitations — invitations en attente
+router.get('/ambassadors/invitations', async (_req: Request, res: Response): Promise<void> => {
+  const invitations = await prisma.ambassadorInvitation.findMany({
+    where:   { usedAt: null },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json({ invitations });
+});
+
+// DELETE /admin/ambassadors/invitations/:id — annuler une invitation
+router.delete('/ambassadors/invitations/:id', async (req: Request, res: Response): Promise<void> => {
+  await prisma.ambassadorInvitation.delete({ where: { id: req.params.id } });
+  res.json({ ok: true });
+});
+
+void PLAN_PRICES;
+
 export default router;
